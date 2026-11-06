@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leash</title>
+<style>
+  :root { --bg: #0b0b0c; --fg: #f4f1ea; --muted: #8b877f; --line: #24221f; --accent: #f4f1ea; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif; overflow: hidden; cursor: none; }
+  .frame { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; padding: 14px 18px; gap: 10px; }
+  .top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; background: var(--muted); }
+  .brain.on .dot { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
+  .brain.off .dot { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+  .main { display: flex; flex-direction: column; justify-content: center; gap: 8px; min-height: 0; }
+  .headline { font-size: 30px; line-height: 1.08; font-weight: 600; letter-spacing: -0.02em; }
+  .detail { font-size: 15px; color: var(--muted); line-height: 1.3; }
+  .pay { display: none; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; gap: 4px; }
+  .pay.show { display: grid; }
+  .amount { font-size: 44px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .amount small { font-size: 18px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .to { font-size: 14px; color: var(--muted); }
+  .to b { color: var(--fg); font-weight: 600; font-family: ui-monospace, Menlo, monospace; }
+  .split { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+  .qr { display: none; background: #fff; padding: 6px; border-radius: 8px; width: 132px; height: 132px; }
+  .qr.show { display: block; }
+  .qr svg { width: 100%; height: 100%; display: block; }
+  .bottom { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; font-family: ui-monospace, Menlo, monospace; }
+  body[data-phase="paid"] .headline { color: #4ade80; }
+  body[data-phase="refused"] .headline, body[data-phase="error"] .headline, body[data-phase="safe_mode"] .headline { color: #ef4444; }
+  body[data-phase="awaiting_thumb"] .pay, body[data-phase="awaiting_world"] .pay { border-color: #f59e0b; }
+  .pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+</style>
+</head>
+<body data-phase="idle">
+<div class="frame">
+  <div class="top">
+    <span>Leash</span>
+    <span class="brain" id="brain"><span class="dot"></span><span id="brainText">connecting</span></span>
+  </div>
+  <div class="main">
+    <div class="split">
+      <div>
+        <div class="headline" id="headline">Hold the button and speak</div>
+        <div class="detail" id="detail"></div>
+      </div>
+      <div class="qr" id="qr"></div>
+    </div>
+    <div class="pay" id="pay">
+      <div class="amount" id="amount"></div>
+      <div class="to">to <b id="payTo"></b> <span id="payToName"></span></div>
+    </div>
+  </div>
+  <div class="bottom"><span id="phase">idle</span><span id="clock"></span></div>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const busy = new Set(["listening", "transcribing", "scanning", "thinking", "saving_memory", "requesting", "paying", "logging"]);
+  function render(s) {
+    document.body.dataset.phase = s.phase;
+    $("headline").textContent = s.headline;
+    $("headline").classList.toggle("pulse", busy.has(s.phase));
+    $("detail").textContent = s.detail || "";
+    $("phase").textContent = s.phase.replace(/_/g, " ");
+    $("brain").className = "brain " + (s.brainOnline ? "on" : "off");
+    $("brainText").textContent = s.brainOnline ? "0G online" : "brain offline";
+    const p = s.payment;
+    $("pay").classList.toggle("show", !!p);
+    if (p) {
+      $("amount").innerHTML = `${p.amountUsdc}<small>USDC</small>`;
+      $("payTo").textContent = p.payTo;
+      $("payToName").textContent = p.payToName ? `(${p.payToName})` : "";
+    }
+    const qr = s.worldApproval && s.worldApproval.qrSvg;
+    $("qr").classList.toggle("show", !!qr);
+    $("qr").innerHTML = qr || "";
+  }
+  function connect() {
+    const es = new EventSource("/api/events");
+    es.addEventListener("screen", (e) => render(JSON.parse(e.data)));
+    es.onerror = () => { es.close(); $("brainText").textContent = "reconnecting"; setTimeout(connect, 1500); };
+  }
+  setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }, 1000);
+  connect();
+</script>
+</body>
+</html>
