@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Leash Gifts · A little gift. A world of possibilities.",
   description:
-    "Receive a gift and explore redeeming it into a virtual card. An interactive demo with simulated funding and card issuance.",
+    "Explore gift redemption with a virtual card issued through the Lithic sandbox. Gift funding is not connected.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

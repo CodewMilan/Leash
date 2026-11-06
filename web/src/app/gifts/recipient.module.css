@@ -46,3 +46,9 @@
 .footer button { color:#404a38; white-space:nowrap; text-decoration:underline; text-underline-offset:4px; cursor:pointer; }
 .footer button:disabled { cursor:default; opacity:.5; }
 @media(max-width:800px) { .main { padding:38px 24px 24px; } .intro { display:block; margin-bottom:32px; } .intro>p { margin-top:20px; max-width:480px; } .layout { grid-template-columns:1fr; gap:32px; } .gift { padding:26px; } .amount { padding:30px 0 24px; font-size:78px; } .gift blockquote { max-width:none; font-size:20px; margin-bottom:28px; } .steps { gap:7px; } .steps li { flex-direction:column; gap:8px; } .footer { flex-direction:column; gap:16px; } .card { max-width:440px; } }
+.field { display:flex; flex-direction:column; gap:10px; font-size:15px; margin-top:25px; }
+.field input { width:100%; border:1px solid #9ba28f; background:#fff; border-radius:6px; padding:14px; color:#252925; font:inherit; }
+.secondary { display:block; margin-top:20px; color:#2448d7; text-decoration:underline; text-underline-offset:4px; cursor:pointer; }
+.secondary:disabled { color:#62675e; cursor:default; }
+.reference { margin-top:20px; color:#62675e; font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
+.reference code { font-size:12px; }

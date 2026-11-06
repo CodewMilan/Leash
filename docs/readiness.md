@@ -1,37 +1,33 @@
 # App readiness — 6 November 2026
 
-## Ready for a local recipient demo
+## Ready: actual Lithic sandbox issuance
 
-- `/` redirects to `/gifts` (HTTP 307).
-- Enter the fictional recipient account and view Milan's $100 gift.
-- Redeem to demo onboarding; the acknowledgment is required before issuance.
-- Generate one illustrative virtual card for the gift.
-- Simulate a $25 purchase; the available balance becomes $75 and repeat demo purchases are disabled.
-- Reload and re-enter the demo to recover the card and remaining balance.
-- Simulate a provider timeout during onboarding, reload, and recover the reserved card without redeeming again.
-- Reset the demo to start over.
-- Responsive desktop and narrow mobile layouts render with scoped CSS; no horizontal overflow was observed at the inspected sizes.
-
-Browser state is not a security boundary. Duplicate redemption checks apply to the ordinary local demo lifecycle; concurrent operations across tabs/devices and manipulated browser storage are not protected as a real financial system would require.
+- `/` redirects to `/gifts`.
+- Operator signs in with the server-configured sandbox access code; the server sets a signed HttpOnly session cookie.
+- Review the sample gift and explicitly confirm sandbox card creation.
+- Server calls `POST https://sandbox.lithic.com/v1/cards` to create a `VIRTUAL` card with a $100 `FOREVER` spending limit.
+- Display actual provider last-four digits, expiry, state, spend-limit period and card token; link to the Lithic dashboard when the programme token is configured.
+- Refresh or revisit to retrieve the same card from Lithic. Repeated issuance returns that card rather than creating another.
+- Persist the reservation before contacting Lithic; recover uncertain results using the unique provider memo. No automatic replacement on timeout.
+- Keep credentials, full PAN and CVV out of API responses and browser storage. Server records contain only identifiers and reservation metadata.
 
 ## Verification
 
-Verified against the production build, not only the development server:
+- `cd web && pnpm check`: TypeScript, ESLint and 19 tests pass.
+- `cd web && pnpm build`: production compilation and static/dynamic route generation pass.
+- Actual authenticated HTTP integration created sandbox card ending **6637**, provider status **OPEN**, with a $100 lifetime limit. A repeated POST returned the same token.
+- API rejects unauthenticated reads (401) and cross-origin writes (403).
+- Tests cover persisted duplicate prevention, simultaneous requests, uncertain timeout recovery, rejected provider calls, expired/altered sessions and exact-origin protection. Provider tests use controlled HTTP responses; the successful sandbox round trip was tested separately.
+- Browser inspection confirms the actual provider card is displayed after local operator login and is independently listed in the Lithic dashboard under its unique reservation memo.
 
-- `cd web && pnpm check`: TypeScript, ESLint and all 14 tests across three files pass.
-- `cd web && pnpm build`: production compilation, type checks and static generation pass.
-- HTTP smoke checks: `/gifts`, `/dashboard`, `/fund`, `/merchant` return 200; `/` redirects to `/gifts`; an unknown route returns 404.
-- Browser walkthrough: acknowledgment validation, successful issuance, simulated purchase, balance persistence, timeout reservation, reload recovery and reset.
-- Desktop and mobile screenshots inspected; no browser console errors observed during the walkthrough.
+## Not ready: crypto-backed redemption or production spending
 
-The verification found and fixed a React storage-initialization lint issue and a pre-existing Tailwind loader rule that removed CSS-module exports. Browser storage now uses React's external-store subscription API, including same-tab changes and cross-tab storage notifications. The Tailwind loader skips CSS modules so Next.js can generate their scoped class exports.
+The received gift remains a sample, not a verified funded onchain record. The spending limit does not deposit money. No real gift recipient authentication, wallet integration, funding bridge, conversion, Bridge/Stripe connection, live KYC, webhook reconciliation or in-app purchase handling exists. Use Lithic's dashboard for sandbox transaction tests. The previous local fake purchase/balance controls were removed.
 
-## Not ready for real payments
+## Operating boundary
 
-No real gift funding, authentication, identity verification, Bridge/Stripe card issuance, provider funding connection, secure card-detail display, webhooks, database ledger or background reconciliation exists. Every gift, card and purchase in `/gifts` is simulated. This is not yet the provider-backed sandbox integration described in the original handoff, nor a production payment service.
+This is a local single-Node-process sandbox integration using persistent writable disk, not a distributed database or a serverless service. Preserve `.data/lithic` (or `LITHIC_DATA_DIR`) and `.env.local`. Losing reservation data can allow another card to be created. After ambiguous or rejected provider calls, the reservation stays locked against new issuance until the provider result is reviewed. A crash may leave `issuance.lock`; GET status recovery remains available. Do not clear records blindly.
 
-Before connecting real funds, obtain the supported Bridge + Stripe programme, authenticate the intended recipient, replace browser state with a private transactional ledger and server-side provider idempotency, prove the funding connection, and implement verified webhooks and recovery.
+The operator access code and per-process sign-in throttling are not production recipient authorization. Production requires proper identity/ownership checks, transactional storage, provider webhooks, secure funding, and the appropriate card programme approval.
 
-## Legacy routes
-
-`/fund`, `/merchant` and `/dashboard` still contain the previous Leash UI. They render unconfigured states without provider/device environment configuration. Their header now links to the gift demo instead of removed landing-page sections. They were inspected but their removed services were not rebuilt or reconnected. Treat these routes as legacy, not as gift-product features ready to demonstrate.
+Legacy `/fund`, `/merchant` and `/dashboard` remain unconfigured old Leash pages, not gift-product features. Their header links to the gift demo rather than removed landing sections.
