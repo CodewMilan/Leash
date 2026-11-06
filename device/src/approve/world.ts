@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { config } from "../config.js";
+import { checkWorldClaims, paymentIntentHash } from "../core/worldClaims.js";
 
 interface Discovery {
   issuer: string;
@@ -81,11 +81,7 @@ export async function startWorldCheck(
   }
   const doc = await discover();
   const startedAt = Date.now();
-  const intentHash = intent
-    ? createHash("sha256")
-        .update(JSON.stringify([intent.episodeId, intent.amountUsdc, config.hedera.usdcTokenId, intent.payTo, config.hedera.network]))
-        .digest("hex")
-    : undefined;
+  const intentHash = intent ? paymentIntentHash(intent, config.hedera.usdcTokenId, config.hedera.network) : undefined;
 
   const res = await fetch(doc.device_authorization_endpoint, authenticated({ scope: "openid" }));
   const started = (await res.json().catch(() => ({}))) as {
@@ -164,20 +160,14 @@ async function validate(
   const base = { sub: claims.sub, acr: claims.acr, amr: claims.amr, intentHash, reference: claims.jti };
   console.log(`[world] token for sub=${claims.sub} acr=${claims.acr} amr=${JSON.stringify(claims.amr)}`);
 
-  if (!claims.jti || usedReferences.has(claims.jti)) return { ...base, verified: false, reason: "World approval was already used" };
-  if (typeof claims.auth_time !== "number" || claims.auth_time * 1000 < startedAt - 60_000) {
-    return { ...base, verified: false, reason: "World authentication is not fresh" };
-  }
-  if (!Array.isArray(claims.amr) || !claims.amr.includes("pop")) {
-    return { ...base, verified: false, reason: "World did not provide proof of personhood" };
-  }
-  if (config.world.requiredAcr.length && !config.world.requiredAcr.includes(claims.acr ?? "")) {
-    return { ...base, verified: false, reason: `World assurance ${claims.acr} is not accepted` };
-  }
-  if (requireOwner && claims.sub !== config.world.ownerSub) {
-    return { ...base, verified: false, reason: "Approved by a different World ID than the owner's" };
-  }
-  usedReferences.add(claims.jti);
+  const verdict = checkWorldClaims(claims, {
+    startedAt,
+    ownerSub: requireOwner ? config.world.ownerSub : null,
+    requiredAcr: config.world.requiredAcr,
+    usedReferences,
+  });
+  if (!verdict.verified) return { ...base, verified: false, reason: verdict.reason };
+  usedReferences.add(claims.jti!);
   return { ...base, verified: true };
 }
 
