@@ -222,11 +222,11 @@ test("ready card fits mobile and polling does not erase secure-detail errors", a
   const flow = await fixture(page, { claim: true });
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`/claim/${giftId}`);
-  const region = page.getByRole("region", { name: "Your Shagun virtual card" });
+  const region = page.getByRole("region", { name: "Your Shagun prepaid gift card" });
   await expect(region).toHaveAttribute("data-card-state", "ready");
   await expect(page.locator("main > :first-child")).toHaveAttribute(
     "aria-label",
-    "Your Shagun virtual card",
+    "Your Shagun prepaid gift card",
   );
   await expect(region.getByText("Mastercard ending in 4242", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -239,10 +239,9 @@ test("ready card fits mobile and polling does not erase secure-detail errors", a
   await desktop.setViewportSize({ width: 1280, height: 900 });
   await fixture(desktop, { claim: true });
   await desktop.goto(`/claim/${giftId}`);
-  await expect(desktop.getByRole("region", { name: "Your Shagun virtual card" })).toHaveAttribute(
-    "data-card-state",
-    "ready",
-  );
+  await expect(
+    desktop.getByRole("region", { name: "Your Shagun prepaid gift card" }),
+  ).toHaveAttribute("data-card-state", "ready");
   await desktop.screenshot({
     path: "test-results/ux-card-desktop.png",
     fullPage: true,

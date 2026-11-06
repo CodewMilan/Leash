@@ -68,7 +68,11 @@ test("a real browser passkey is verified server-side and its assertion cannot be
     },
   });
   await page.setViewportSize({ width: 390, height: 900 });
+  const opened = page.waitForResponse((response) =>
+    response.url().endsWith(`/api/gifts/${gift.id}`),
+  );
   await page.goto(`/claim/${gift.id}#${gift.secret}`);
+  expect((await opened).status()).toBe(200);
   await expect(page.getByRole("heading", { name: "A little something for you." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Claim gift" })).toHaveCount(0);
   const verified = page.waitForResponse((r) => r.url().endsWith("/api/auth/passkey/verify"));

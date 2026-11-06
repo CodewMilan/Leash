@@ -8,7 +8,7 @@ const PARTS = [
   { name: "Whitechain", role: "Test USDT, no gas", bg: "#193ef9", light: true, Icon: Blocks },
   { name: "Passkey", role: "Their phone confirms", bg: "#36d972", light: false, Icon: Fingerprint },
   { name: "Vault", role: "Holds it until claimed", bg: "#a199ff", light: false, Icon: Vault },
-  { name: "Lithic", role: "Sandbox virtual card", bg: "#ff942e", light: false, Icon: CreditCard },
+  { name: "Lithic", role: "Sandbox prepaid card", bg: "#ff942e", light: false, Icon: CreditCard },
   { name: "Return", role: "Unspent comes back", bg: "#ffbfec", light: false, Icon: Undo2 },
   { name: "Envelope", role: "A link, not an account", bg: "#ffc0c0", light: false, Icon: Mail },
   { name: "Receipt", role: "Every step, on record", bg: "#1f1f1f", light: true, Icon: ReceiptText },

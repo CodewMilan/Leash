@@ -140,6 +140,7 @@ async function authorize(amount: number, clear: boolean) {
         descriptor: "Shagun Test Merchant",
         mcc: "5947",
         merchant_currency: "USD",
+        merchant_amount: amount,
         merchant_acceptor_id: "SHAGUN0001",
       },
     }));

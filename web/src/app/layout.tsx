@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shagun · A little gift. A lot of love.",
+  title: "Shagun · Prepaid gift cards, paid in USDT",
   description:
-    "Send a Diwali gift in dollars without paying gas. The recipient claims it with a passkey as a sandbox virtual card, and the unspent balance comes back. Whitechain testnet, no real money.",
+    "Pay in USDT without gas. The recipient claims a prepaid dollar gift card with a passkey, with no wallet or crypto, and the unspent balance comes back. Whitechain testnet and Lithic sandbox, no real money.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

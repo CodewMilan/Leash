@@ -33,7 +33,7 @@ const copy = {
     "Preparing your virtual card.",
     "Your gift is claimed. We’re setting up its card with the same spending budget. You can leave this page and return with your passkey.",
   ],
-  ready: ["Your gift card.", "A virtual card for the good things you choose."],
+  ready: ["Your prepaid gift card.", "A virtual card for the good things you choose."],
   allocated: [
     "Your gift is in use.",
     "There is no available balance for a new purchase. Pending purchases may still clear or release their holds.",
@@ -317,7 +317,7 @@ function RecipientWallet({ giftId, onAuthenticate }: Props) {
   return (
     <section
       className={`panel ${styles.wallet}`}
-      aria-label="Your Shagun virtual card"
+      aria-label="Your Shagun prepaid gift card"
       data-card-state={state}
     >
       <div className={`panel-heading ${styles.heading}`}>

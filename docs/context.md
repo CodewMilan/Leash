@@ -13,14 +13,17 @@ Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:3
 
 User decision Nov 6: World ID is removed. New claims use passkeys and the private gift-link secret; campaign limits are per passkey.
 
+User decision Nov 6, 22:05 IST: position Shagun as **prepaid fiat gift cards**. Do not pitch it as anonymous payments: Lithic, its bank, our backend and the public chain all see purchase data, and anonymous prepaid access is only permitted for small, non-reloadable cards with an identified buyer.
+
 ## 1. One-liner and positioning
 
-**“Send a Diwali shagun in dollars. A passkey-authenticated recipient claims a virtual card, spends from the gift, and the reconciled unused balance comes back to the sender.”**
+**“Prepaid fiat gift cards, paid in USDT. Pay for a Diwali shagun in USDT without gas; the recipient claims a prepaid dollar gift card with a passkey, spends from it like any card, and the reconciled unused balance comes back to the sender.”**
 
+- **Category:** a prepaid gift card, the digital equivalent of a store-bought gift card, funded with stablecoins. Supporting line only: the recipient shares no name, phone, bank or wallet, just a passkey.
 - **Primary partner:** Whitechain. Showcase gasless official-USDT settlement and verifiable gift rules.
-- **Demo hook:** the judge taps an NFC envelope, confirms their device and passkey confirmation, and sees a genuine Lithic sandbox card in the browser.
-- **Three differentiators:** no sender-paid gas or recipient wallet; one-per-passkey company campaigns; unused gift value returned after expiry and reconciliation.
-- **Main redemption:** a Lithic sandbox virtual card, with a spend limit matching the gift. The sandbox is not connected to card networks, so the card cannot purchase real goods; purchases are simulated. The card budget is separate from Whitechain USDT.
+- **Demo hook:** the judge taps an NFC envelope, confirms with a passkey, and sees a genuine Lithic sandbox prepaid card in the browser.
+- **Three differentiators:** crypto in, prepaid dollar card out (no sender-paid gas, no recipient wallet or token); one exact-amount card per gift, never reloaded, with every purchase approved live against the gift balance and cleared spending settled on-chain; unused gift value returned after expiry and reconciliation.
+- **Main redemption:** a Lithic sandbox prepaid virtual card, with a spend limit matching the gift. The sandbox is not connected to card networks, so the card cannot purchase real goods; purchases are simulated. The card budget is separate from Whitechain USDT.
 - **Optional extra:** RazorpayX UPI test payout, as an alternative redemption mode, after the card demo passes.
 - **Production scope:** neither issuing/availability in India nor automatic conversion of Whitechain USDT into card funds is established. Verify production provider eligibility before making geographic or real-money claims.
 

@@ -1,6 +1,6 @@
 # Shagun
 
-A Diwali gift sent in dollars, claimed with a passkey, and redeemed as a gift-sized Lithic sandbox virtual card. Built in the existing Next.js website and brand kit.
+Prepaid fiat gift cards, paid in USDT. The sender pays for a Diwali gift in official test USDT on Whitechain without paying gas; the recipient claims it with a passkey and gets a prepaid dollar gift card (a Lithic sandbox virtual card) loaded with exactly the gift, with no wallet or crypto on their side. Unspent value returns to the sender. Built in the existing Next.js website and brand kit.
 
 **Current stage:** sender, verified claim, per-gift card issuance, hosted card details, authorization reservations, clearing reconciliation and partial chain settlement are connected in code. Local tests cover the integration; real end-to-end provider/chain validation requires a compatible deployed vault, Lithic signed webhooks and an HTTPS app origin. Sandbox cards cannot buy real goods. USDT is not converted into card funds.
 
@@ -85,7 +85,7 @@ pnpm build
 E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
-## Shagun virtual gift cards
+## Shagun prepaid gift cards
 
 New claims use card redemption. The recipient opens the private gift link, confirms a passkey and presents the private gift-link secret. After the on-chain claim confirms, the worker reserves one virtual card per gift and creates it paused with an exact lifetime budget: a $25 gift receives a 2,500-cent card limit; $51.50 receives 5,150 cents. Amounts must be whole cents. There is no fixed $100 sample pass or shared operator card in this journey.
 
@@ -93,7 +93,7 @@ Card issuance is durable: the operation is recorded before calling Lithic. An in
 
 Configure `LITHIC_API_KEY`, `LITHIC_ENVIRONMENT=sandbox`, `LITHIC_ASA_SECRET`, and `LITHIC_EVENTS_SECRET`, along with the database, Whitechain vault/roles in `.env.example`. UPI provider settings are optional for new card gifts. Use a compatible deployment of `ShagunVault` exposing `spend` and `closeClaimed`; do not point old funded gifts at a replacement vault.
 
-Lithic webhooks and hosted frames require a public HTTPS app origin. Run a tunnel to the development server, set `APP_URL` to that exact HTTPS origin and restart the app and worker. Open the gift through that URL. Enroll the signed ASA and event endpoints:
+Lithic webhooks and hosted frames require a public HTTPS app origin. Run a tunnel to the development server (for example `cloudflared tunnel --url http://localhost:3000`), set `APP_URL` to that exact HTTPS origin and restart the app and worker. The scripts, worker and migrations read settings only from `web/.env.local`. The dev server serves its scripts only to the `APP_URL` host, so open the whole site through the tunnel, not `localhost`. A quick tunnel gets a new URL each time it restarts; enroll both endpoints again and disable the old event subscription. Enroll the signed ASA and event endpoints:
 
 ```bash
 cd web

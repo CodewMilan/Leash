@@ -7,7 +7,7 @@ import { EASE, gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap";
 const POSTERS = [
   { bg: "#ffbfec", k: "Sent", t: "$11", d: "Funded on Whitechain and waiting in the vault. Share the link or tap the envelope." },
   { bg: "#36d972", k: "Passkey claimed", t: "$25", d: "Claimed with the private gift link and a passkey. The same passkey opens the card." },
-  { bg: "#ff942e", k: "Virtual card", t: "$51", d: "A Lithic sandbox card with the gift as its limit. Purchases are simulated." },
+  { bg: "#ff942e", k: "Prepaid card", t: "$51", d: "A prepaid Lithic sandbox card loaded with the gift. Purchases are simulated." },
   { bg: "#a199ff", k: "Comes back", t: "$101", d: "At expiry the unspent USDT returns to the sender. Unclaimed gifts return in full." },
   { bg: "#193ef9", k: "Link denied", t: "$25", light: true, d: "A gift can only be claimed once. A campaign also refuses a second gift claimed with the same passkey." },
 ];

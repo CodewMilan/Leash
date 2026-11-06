@@ -254,7 +254,9 @@ function RecipientClaim({ giftId, receipt = false }: { giftId: string; receipt?:
           <div className={styles.summary}>
             <div className="claim-amount">${tokenAmount(gift.amount)}</div>
             <p className="microcopy">
-              {claimed ? "Original gift budget" : "A virtual card with a budget matching your gift"}
+              {claimed
+                ? "Original gift budget"
+                : "A prepaid gift card in dollars, loaded with exactly this gift"}
             </p>
           </div>
           {note && !receipt && (
