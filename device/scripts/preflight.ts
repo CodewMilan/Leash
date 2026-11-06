@@ -83,7 +83,8 @@ const checks: [string, () => Promise<string>][] = [
   [
     "0G compute",
     async () => {
-      if (!(await verifyBrainAccess())) throw new Error(`0G Router at ${config.zg.baseUrl} is unreachable (the device would stay in safe mode)`);
+      const access = await verifyBrainAccess();
+      if (!access.ok) throw new Error(`0G model ${config.zg.model} is not answering (${access.detail}); the device would stay in safe mode`);
       return `${config.zg.baseUrl}, model ${config.zg.model}, key accepted`;
     },
   ],
@@ -109,6 +110,10 @@ const checks: [string, () => Promise<string>][] = [
   [
     "world client",
     async () => {
+      const { clientId, clientSecret } = config.world;
+      if (!clientId || !clientSecret) {
+        throw new Warn("WORLD_CLIENT_ID / WORLD_CLIENT_SECRET not set: payments under the limit work, payments over it are refused");
+      }
       const doc = await fetch(`${config.world.issuer}/.well-known/openid-configuration`, { signal: AbortSignal.timeout(15_000) });
       if (!doc.ok) throw new Error(`discovery at ${config.world.issuer} returned HTTP ${doc.status}`);
       const { device_authorization_endpoint } = (await doc.json()) as { device_authorization_endpoint?: string };
@@ -116,10 +121,10 @@ const checks: [string, () => Promise<string>][] = [
       const body = new URLSearchParams({ scope: "openid" });
       const headers: Record<string, string> = { "content-type": "application/x-www-form-urlencoded", accept: "application/json" };
       if (config.world.authMethod === "post") {
-        body.set("client_id", config.world.clientId);
-        body.set("client_secret", config.world.clientSecret);
+        body.set("client_id", clientId);
+        body.set("client_secret", clientSecret);
       } else {
-        headers.authorization = `Basic ${Buffer.from(`${encodeURIComponent(config.world.clientId)}:${encodeURIComponent(config.world.clientSecret)}`).toString("base64")}`;
+        headers.authorization = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString("base64")}`;
       }
       const res = await fetch(device_authorization_endpoint, { method: "POST", headers, body, signal: AbortSignal.timeout(15_000) });
       if (!res.ok) throw new Error(`World rejected the client (HTTP ${res.status}): ${(await res.text()).slice(0, 200)}; check WORLD_CLIENT_ID/SECRET and WORLD_AUTH_METHOD`);

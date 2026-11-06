@@ -11,7 +11,7 @@ import { gpio } from "./hw/gpio.js";
 import { say } from "./hw/media.js";
 import { saveMemory } from "./memory/zgStorage.js";
 import { approveWithFingerprint } from "./approve/thumb.js";
-import { requestWorldApproval } from "./approve/world.js";
+import { assertWorldReady, requestWorldApproval } from "./approve/world.js";
 import { PaymentRejected, payX402 } from "./pay/x402.js";
 import { state, type EpisodeRecord, type Light, type Phase, type ScreenState } from "./state.js";
 
@@ -141,6 +141,7 @@ export class Agent {
 
         if (verdict.overLimit) {
           // 4. Over the limit: the screen shows what the device is about to sign; thumb first, then World ID.
+          assertWorldReady();
           gpio.buzz(400);
           show({ phase: "awaiting_thumb", headline: "Press your thumb to approve", detail: `Over your ${config.spendLimitUsdc} USDC limit`, payment: screenPayment, episodeId: episode.id });
           say(`This is ${amountUsdc} dollars to ${contact.name}, over your limit. Press your thumb to approve.`);

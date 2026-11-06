@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { config } from "../config.js";
+import { Refused } from "../core/contacts.js";
 import { checkWorldClaims, paymentIntentHash } from "../core/worldClaims.js";
 
 interface Discovery {
@@ -25,16 +26,34 @@ async function discover(): Promise<Discovery> {
   return doc;
 }
 
+/** World client credentials; without them no over-limit payment can be approved. */
+function credentials(): { clientId: string; clientSecret: string } {
+  const { clientId, clientSecret } = config.world;
+  if (!clientId || !clientSecret) {
+    throw new Refused("World ID is not set up (WORLD_CLIENT_ID / WORLD_CLIENT_SECRET), so payments over your limit can't be approved");
+  }
+  return { clientId, clientSecret };
+}
+
+/** Throws a refusal if World can't approve a payment right now, so the owner isn't asked for a thumb in vain. */
+export function assertWorldReady(requireOwner = true) {
+  credentials();
+  if (requireOwner && !config.world.ownerSub) {
+    throw new Refused("WORLD_OWNER_SUB is not set; run `pnpm enroll:world` to pin the owner's World ID");
+  }
+}
+
 /** Client authentication as registered in the World portal (client_secret_basic by default). */
 function authenticated(form: Record<string, string>): RequestInit {
+  const { clientId, clientSecret } = credentials();
   const body = new URLSearchParams(form);
   const headers: Record<string, string> = { "content-type": "application/x-www-form-urlencoded", accept: "application/json" };
   if (config.world.authMethod === "post") {
-    body.set("client_id", config.world.clientId);
-    body.set("client_secret", config.world.clientSecret);
+    body.set("client_id", clientId);
+    body.set("client_secret", clientSecret);
   } else {
-    const id = encodeURIComponent(config.world.clientId);
-    const secret = encodeURIComponent(config.world.clientSecret);
+    const id = encodeURIComponent(clientId);
+    const secret = encodeURIComponent(clientSecret);
     headers.authorization = `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`;
   }
   return { method: "POST", headers, body };
@@ -76,9 +95,7 @@ export async function startWorldCheck(
   signal: AbortSignal,
   opts: { requireOwner: boolean } = { requireOwner: true },
 ): Promise<WorldApproval> {
-  if (opts.requireOwner && !config.world.ownerSub) {
-    throw new Error("WORLD_OWNER_SUB is not set; run `pnpm enroll:world` to pin the owner's World ID");
-  }
+  assertWorldReady(opts.requireOwner);
   const doc = await discover();
   const startedAt = Date.now();
   const intentHash = intent ? paymentIntentHash(intent, config.hedera.usdcTokenId, config.hedera.network) : undefined;
@@ -150,7 +167,7 @@ async function validate(
   try {
     ({ payload: claims } = await jwtVerify(idToken, jwks!, {
       issuer: doc.issuer,
-      audience: config.world.clientId,
+      audience: credentials().clientId,
       algorithms: ["RS256"],
       clockTolerance: 60,
     }));

@@ -15,7 +15,7 @@ Built at ETHGlobal Mumbai with **0G** (AI decisions and memory), **Hedera** (x40
 |---|---|---|
 | `device/` | Raspberry Pi 4 | The agent. Push-to-talk + local Whisper, QR camera, asks 0G to decide, saves memory to 0G Storage, enforces the limit, fingerprint + World ID for big payments, signs the x402 payment and the HCS spend log. Serves the device screen and a read-only live feed. |
 | `merchant/` | Laptop | Demo shop with two x402-protected endpoints (chai stall, photographer), settling USDC on Hedera testnet through a public facilitator. |
-| `web/` | Laptop | Landing page and the read-only dashboard (`/dashboard`): Hedera mirror node + the device's live feed. |
+| `web/` | Laptop | Landing page, the read-only dashboard (`/dashboard`), merchant onboarding (`/merchant`: connect a Hedera wallet over WalletConnect and enable USDC) and owner top-ups (`/fund`: send USDC or HBAR to the device from your wallet). |
 
 ## Payment flow
 
@@ -35,15 +35,16 @@ Built at ETHGlobal Mumbai with **0G** (AI decisions and memory), **Hedera** (x40
 
 Copy `.env.example` to `.env` (repo root, or `device/.env` on the Pi and `merchant/.env` on the laptop) and fill in real values. Nothing is mocked; missing values stop the apps at startup.
 
-1. **Hedera testnet**: create two accounts at [portal.hedera.com](https://portal.hedera.com) (device and merchant). The device needs a little HBAR for association and HCS messages; payment fees are paid by the facilitator.
+1. **Hedera testnet**: the device gets its own account from [portal.hedera.com](https://portal.hedera.com) (`HEDERA_ACCOUNT_ID` / `HEDERA_PRIVATE_KEY`); its key lives only on the device. The merchant uses any Hedera wallet (HashPack, Kabila…): only its account ID goes in `MERCHANT_ACCOUNT_ID`, and USDC is enabled from the wallet at `/merchant`. The device needs a little HBAR for association and HCS messages; payment fees are paid by the facilitator.
+4. **WalletConnect**: a project ID from [dashboard.reown.com](https://dashboard.reown.com) in `web/.env.local` (`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`). It is public, not a secret.
 2. **0G**: an API key from [pc.0g.ai](https://pc.0g.ai) (`ZG_API_KEY`), and an EVM wallet with Galileo testnet tokens from [faucet.0g.ai](https://faucet.0g.ai) (`ZG_PRIVATE_KEY`) for Storage uploads.
 3. **World**: register a client at [auth.world.org/portal](https://auth.world.org/portal) (a redirect URI is required even though the device flow doesn't use it). Put the client ID and secret in `WORLD_CLIENT_ID` / `WORLD_CLIENT_SECRET`.
 
 ### Merchant (laptop)
 
 ```bash
+# First: open /merchant in the web app, connect the merchant's wallet and enable USDC (the wallet signs; no key here)
 cd merchant && pnpm install
-pnpm setup          # associates MERCHANT_ACCOUNT_ID with USDC 0.0.429274 (uses MERCHANT_PRIVATE_KEY once)
 pnpm preflight      # checks the account and the facilitator against the real network
 pnpm start          # http://<laptop-ip>:4021, QR codes at /qr/chai and /qr/photo, receipts at /receipts
 ```

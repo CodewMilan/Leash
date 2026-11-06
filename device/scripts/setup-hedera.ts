@@ -3,15 +3,17 @@
  *  1. associate the device account with testnet USDC (skipped if already associated)
  *  2. create the spend log HCS topic with the device key as submit key (skipped if HEDERA_SPEND_LOG_TOPIC_ID is set)
  */
-import { AccountBalanceQuery, TokenAssociateTransaction, TopicCreateTransaction } from "@hiero-ledger/sdk";
+import { Hbar, TokenAssociateTransaction, TopicCreateTransaction } from "@hiero-ledger/sdk";
 import { config } from "../src/config.js";
-import { deviceAccountId, deviceKey, hashscanTopic, hederaClient } from "../src/hedera/client.js";
+import { deviceAccountId, deviceKey, hashscanTopic, hederaClient, mirrorNodeUrl } from "../src/hedera/client.js";
 import { usdcBalance } from "../src/hedera/mirror.js";
 
 const client = hederaClient();
 
-const balance = await new AccountBalanceQuery().setAccountId(deviceAccountId).execute(client);
-console.log(`Device account ${deviceAccountId}: ${balance.hbars.toString()}`);
+const account = await fetch(`${mirrorNodeUrl}/api/v1/accounts/${deviceAccountId}`);
+if (!account.ok) throw new Error(`Mirror node has no account ${deviceAccountId} (HTTP ${account.status})`);
+const { balance } = (await account.json()) as { balance: { balance: number } };
+console.log(`Device account ${deviceAccountId}: ${Hbar.fromTinybars(balance.balance).toString()}`);
 
 const usdc = await usdcBalance(deviceAccountId.toString());
 if (usdc !== null) {

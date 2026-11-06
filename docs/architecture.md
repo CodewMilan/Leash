@@ -82,7 +82,8 @@ If the thumb or World check fails, times out or is cancelled, the device never s
 | World client secret | Device | Nothing, it authenticates proof checks with World |
 | Fingerprint | Sensor | Nothing, it sends yes/no to the device |
 | World proof | Phone | Proof that a human approved |
-| Merchant key | Laptop | Setup only (USDC token association) |
+| Merchant's wallet | Merchant's own wallet app | One-time USDC association, through WalletConnect at `/merchant`; the shop server holds no key |
+| Owner's wallet | Owner's own wallet app | Top-ups to the device, through WalletConnect at `/fund` |
 
 ## Why this is safe, and where it isn't
 

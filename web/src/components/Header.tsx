@@ -15,12 +15,7 @@ export const NAV = [
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-[6px] font-book text-[24px] font-semibold tracking-[-0.06em] ${className}`}>
-      <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" aria-hidden="true">
-        <rect x="1" y="1" width="18" height="18" rx="4" fill="#262626" />
-        <circle cx="10" cy="12" r="3.2" fill="none" stroke="#36d972" strokeWidth="1.8" />
-        <path d="M10 8.8 V4" stroke="#36d972" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
+    <span className={`inline-flex items-center font-book text-[24px] font-semibold tracking-[-0.06em] ${className}`}>
       leash
     </span>
   );
@@ -73,7 +68,8 @@ export function Header() {
           ))}
         </nav>
         <div className="ml-auto flex h-full items-center">
-          <FlipLink href="/dashboard" label="Live log" className="mr-[30px] text-[15px]" />
+          <FlipLink href="/fund" label="Top up" className="mr-[24px] hidden text-[15px] xl:inline-flex" />
+          <FlipLink href="/merchant" label="Merchants" className="mr-[30px] text-[15px]" />
           <FlipLink
             href="/dashboard"
             label="Open Dashboard"
@@ -127,6 +123,12 @@ export function Header() {
         ))}
         <Link href="/dashboard" onClick={() => setOpen(false)}>
           Live log
+        </Link>
+        <Link href="/fund" onClick={() => setOpen(false)}>
+          Top up your Leash
+        </Link>
+        <Link href="/merchant" onClick={() => setOpen(false)}>
+          For merchants
         </Link>
       </div>
     </header>

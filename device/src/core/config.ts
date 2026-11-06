@@ -34,7 +34,7 @@ export function parseConfig(env: Env) {
       apiKey: required("ZG_API_KEY"),
       privateKey: required("ZG_PRIVATE_KEY"),
       baseUrl: optional("ZG_BASE_URL", "https://router-api.0g.ai/v1").replace(/\/$/, ""),
-      model: optional("ZG_MODEL", "0gm-1.0-35b-a3b"),
+      model: optional("ZG_MODEL", "glm-5.3"),
       rpcUrl: optional("ZG_RPC_URL", "https://evmrpc-testnet.0g.ai"),
       indexerUrl: optional("ZG_INDEXER_URL", "https://indexer-storage-testnet-turbo.0g.ai"),
       timeoutMs: positiveNumber("ZG_TIMEOUT_MS", "20000"),
@@ -46,9 +46,10 @@ export function parseConfig(env: Env) {
       usdcTokenId: optional("HEDERA_USDC_TOKEN_ID", "0.0.429274"),
       spendLogTopicId: env.HEDERA_SPEND_LOG_TOPIC_ID?.trim() || null,
     },
+    /** Without World credentials the device runs, but every over-limit payment is refused. */
     world: {
-      clientId: required("WORLD_CLIENT_ID"),
-      clientSecret: required("WORLD_CLIENT_SECRET"),
+      clientId: env.WORLD_CLIENT_ID?.trim() || null,
+      clientSecret: env.WORLD_CLIENT_SECRET?.trim() || null,
       issuer: optional("WORLD_ISSUER", "https://auth.world.org").replace(/\/$/, ""),
       authMethod: oneOf("WORLD_AUTH_METHOD", "basic", ["basic", "post"] as const),
       /** Pairwise World ID `sub` of the owner; only they can approve. Set by `pnpm enroll:world`. */

@@ -17,7 +17,7 @@ async function call0G(path: string, init: RequestInit): Promise<Response> {
 }
 
 /** Boot check with a 1-token completion: a rejected key is a config error and stops the app, unlike an outage. */
-export async function verifyBrainAccess(): Promise<boolean> {
+export async function verifyBrainAccess(): Promise<{ ok: boolean; detail: string }> {
   try {
     const res = await call0G("/chat/completions", {
       method: "POST",
@@ -30,9 +30,10 @@ export async function verifyBrainAccess(): Promise<boolean> {
     if (res.status === 404 || res.status === 400) {
       throw new Error(`0G rejected model "${config.zg.model}" (HTTP ${res.status}): ${(await res.text()).slice(0, 200)}`);
     }
-    return res.ok;
+    if (res.ok) return { ok: true, detail: "ok" };
+    return { ok: false, detail: `HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}` };
   } catch (err) {
-    if (err instanceof BrainOfflineError) return false;
+    if (err instanceof BrainOfflineError) return { ok: false, detail: err.message };
     throw err;
   }
 }

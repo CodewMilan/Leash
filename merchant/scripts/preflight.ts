@@ -2,6 +2,8 @@
 import { config as loadDotenv } from "dotenv";
 import path from "node:path";
 import { MERCHANT_ROOT, parseMerchantConfig } from "../src/config.js";
+import { fromUnits } from "../src/pricing.js";
+import { usdcReadiness } from "../src/readiness.js";
 
 loadDotenv({ path: path.join(MERCHANT_ROOT, ".env"), quiet: true });
 loadDotenv({ path: path.join(MERCHANT_ROOT, "..", ".env"), quiet: true });
@@ -21,13 +23,19 @@ const checks: [string, () => Promise<string>][] = [
   [
     "merchant account",
     async () => {
-      const res = await fetch(`${mirror}/api/v1/accounts/${config.accountId}/tokens?token.id=${config.usdcTokenId}`);
-      if (res.status === 404) throw new Error(`${config.accountId} does not exist on ${config.network}`);
-      if (!res.ok) throw new Error(`mirror node HTTP ${res.status}`);
-      const { tokens } = (await res.json()) as { tokens: { token_id: string; balance: number }[] };
-      const usdc = tokens.find((t) => t.token_id === config.usdcTokenId);
-      if (!usdc) throw new Error(`not associated with USDC ${config.usdcTokenId}, so payments to it would fail; run \`pnpm setup\``);
-      return `${config.accountId}, USDC associated, balance ${usdc.balance / 1e6} USDC`;
+      const [acct, held] = await Promise.all([
+        fetch(`${mirror}/api/v1/accounts/${config.accountId}`),
+        fetch(`${mirror}/api/v1/accounts/${config.accountId}/tokens?token.id=${config.usdcTokenId}`),
+      ]);
+      if (acct.status === 404) throw new Error(`${config.accountId} does not exist on ${config.network}`);
+      if (!acct.ok || !held.ok) throw new Error(`mirror node HTTP ${acct.ok ? held.status : acct.status}`);
+      const { max_automatic_token_associations } = (await acct.json()) as { max_automatic_token_associations: number };
+      const { tokens } = (await held.json()) as { tokens: { token_id: string; balance: number }[] };
+      const ready = usdcReadiness({ tokenId: config.usdcTokenId, tokens, maxAutomaticTokenAssociations: max_automatic_token_associations });
+      if (!ready.ok) throw new Error(ready.reason);
+      return ready.how === "associated"
+        ? `${config.accountId}, USDC associated, balance ${fromUnits(ready.balanceUnits)} USDC`
+        : `${config.accountId}, receives USDC through automatic association`;
     },
   ],
   [

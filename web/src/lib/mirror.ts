@@ -124,6 +124,33 @@ async function tokenDecimals(network: Network, tokenId: string) {
   return d;
 }
 
+export type UsdcReadiness =
+  | { ok: true; how: "associated"; balance: number }
+  | { ok: true; how: "auto-association" }
+  | { ok: false; slots: number };
+
+/** Whether an account can receive USDC: associated, or unlimited automatic association (-1). */
+export function usdcReadiness(
+  tokens: { token_id: string; balance: number }[],
+  maxAutomaticTokenAssociations: number,
+  usdcTokenId: string,
+  decimals: number,
+): UsdcReadiness {
+  const held = tokens.find((t) => t.token_id === usdcTokenId);
+  if (held) return { ok: true, how: "associated", balance: held.balance / 10 ** decimals };
+  if (maxAutomaticTokenAssociations === -1) return { ok: true, how: "auto-association" };
+  return { ok: false, slots: maxAutomaticTokenAssociations };
+}
+
+export async function fetchUsdcReadiness(network: Network, accountId: string, usdcTokenId: string): Promise<UsdcReadiness> {
+  const [account, held, decimals] = await Promise.all([
+    getJson<{ max_automatic_token_associations: number }>(network, `/api/v1/accounts/${accountId}`),
+    getJson<{ tokens: { token_id: string; balance: number }[] }>(network, `/api/v1/accounts/${accountId}/tokens?token.id=${usdcTokenId}`),
+    tokenDecimals(network, usdcTokenId),
+  ]);
+  return usdcReadiness(held.tokens, account.max_automatic_token_associations, usdcTokenId, decimals);
+}
+
 export async function fetchBalances(network: Network, accountId: string, usdcTokenId: string): Promise<Balances> {
   const [account, decimals] = await Promise.all([
     getJson<{ balance: { balance: number; tokens: { token_id: string; balance: number }[] } }>(

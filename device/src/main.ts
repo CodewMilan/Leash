@@ -41,7 +41,9 @@ async function heartbeat() {
   state.setBrainOnline(online);
   if (changed && !agent.busy()) idle();
 }
-state.setBrainOnline(await verifyBrainAccess());
+const access = await verifyBrainAccess();
+if (!access.ok) console.warn(`0G brain offline at boot (${access.detail}); safe mode until it answers`);
+state.setBrainOnline(access.ok);
 setInterval(heartbeat, 15_000);
 
 startServer({

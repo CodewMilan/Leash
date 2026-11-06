@@ -6,8 +6,6 @@ const complete = {
   ZG_PRIVATE_KEY: "0x" + "11".repeat(32),
   HEDERA_ACCOUNT_ID: "0.0.1001",
   HEDERA_PRIVATE_KEY: "22".repeat(32),
-  WORLD_CLIENT_ID: "app_123",
-  WORLD_CLIENT_SECRET: "secret",
 };
 
 describe("parseConfig", () => {
@@ -39,6 +37,11 @@ describe("parseConfig", () => {
     expect(() => parseConfig({ ...complete, SPEND_LIMIT_USDC: "five" })).toThrow(/SPEND_LIMIT_USDC/);
     expect(() => parseConfig({ ...complete, HEDERA_NETWORK: "previewnet" })).toThrow(/HEDERA_NETWORK/);
     expect(() => parseConfig({ ...complete, LEASH_HARDWARE: "laptop" })).toThrow(/LEASH_HARDWARE/);
+  });
+
+  it("starts without World credentials, leaving World unset", () => {
+    expect(parseConfig(complete).world).toMatchObject({ clientId: null, clientSecret: null });
+    expect(parseConfig({ ...complete, WORLD_CLIENT_ID: "app_1", WORLD_CLIENT_SECRET: "s" }).world).toMatchObject({ clientId: "app_1", clientSecret: "s" });
   });
 
   it("runs without hardware when LEASH_HARDWARE=none", () => {

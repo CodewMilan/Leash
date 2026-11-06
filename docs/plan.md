@@ -15,8 +15,8 @@ Already done: landing page and dashboard (`web/`), first draft of the device age
 ## Phase 1: first real payment from the laptop (as soon as keys land, ~1.5 h)
 
 1. Fill `.env`, copy `device/contacts.example.json` to `device/contacts.json` (laptop IP, merchant account), run `pnpm preflight` in both folders until it's green.
-2. `merchant/`: `pnpm setup`, then `pnpm start`.
-3. `device/`: `pnpm setup:hedera` (USDC association, spend log topic), get USDC from faucet.circle.com.
+2. Merchant: open `/merchant`, connect the merchant's wallet, enable USDC; then `pnpm start` in `merchant/`. No merchant key anywhere.
+3. `device/`: `pnpm setup:hedera` (USDC association, spend log topic), then fund it from your wallet at `/fund` (or faucet.circle.com).
 4. `LEASH_HARDWARE=none pnpm start`, then `pnpm ask "buy two chais"`: 0G decides, memory goes to 0G Storage, x402 payment settles, spend log entry is written.
 5. Safe mode check: point `ZG_BASE_URL` at a dead host and confirm nothing is paid.
 6. Put the real transaction IDs in the README and the topic and account IDs in `web/.env.local`; check `/dashboard`.
