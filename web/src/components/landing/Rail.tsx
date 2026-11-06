@@ -34,7 +34,7 @@ export function Rail() {
   const tweenRef = useRef<gsap.core.Tween | null>(null);
   const [open, setOpen] = useState(false);
 
-  const { contextSafe } = useGSAP(
+  useGSAP(
     () => {
       if (prefersReducedMotion() || !colRef.current) return;
       tweenRef.current = gsap.to(colRef.current, { yPercent: -50, duration: 40, ease: "none", repeat: -1 });
@@ -54,9 +54,9 @@ export function Rail() {
     { dependencies: [open], scope: ref },
   );
 
-  const setSpeed = contextSafe((s: number) => {
+  const setSpeed = (s: number) => {
     if (tweenRef.current) gsap.to(tweenRef.current, { timeScale: s, duration: 0.5 });
-  });
+  };
 
   return (
     <aside

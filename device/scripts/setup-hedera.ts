@@ -3,7 +3,7 @@
  *  1. associate the device account with testnet USDC (skipped if already associated)
  *  2. create the spend log HCS topic with the device key as submit key (skipped if HEDERA_SPEND_LOG_TOPIC_ID is set)
  */
-import { AccountBalanceQuery, TokenAssociateTransaction, TopicCreateTransaction } from "@hashgraph/sdk";
+import { AccountBalanceQuery, TokenAssociateTransaction, TopicCreateTransaction } from "@hiero-ledger/sdk";
 import { config } from "../src/config.js";
 import { deviceAccountId, deviceKey, hashscanTopic, hederaClient } from "../src/hedera/client.js";
 import { usdcBalance } from "../src/hedera/mirror.js";

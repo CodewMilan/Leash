@@ -106,7 +106,7 @@ export function UnderTheHood() {
   const trackRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<gsap.core.Tween | null>(null);
 
-  const { contextSafe } = useGSAP(
+  useGSAP(
     () => {
       if (prefersReducedMotion() || !trackRef.current) return;
       tweenRef.current = gsap.to(trackRef.current, { xPercent: -50, duration: 60, ease: "none", repeat: -1 });
@@ -114,9 +114,9 @@ export function UnderTheHood() {
     { scope: ref },
   );
 
-  const setSpeed = contextSafe((speed: number) => {
+  const setSpeed = (speed: number) => {
     if (tweenRef.current) gsap.to(tweenRef.current, { timeScale: speed, duration: 0.6, ease: "power2.out" });
-  });
+  };
 
   return (
     <section ref={ref} id="hood" className="flex flex-col gap-[30px] overflow-hidden pb-[90px] pt-[90px]">

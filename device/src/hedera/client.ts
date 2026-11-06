@@ -1,4 +1,4 @@
-import { AccountId, Client, PrivateKey } from "@hashgraph/sdk";
+import { AccountId, Client, PrivateKey } from "@hiero-ledger/sdk";
 import { config } from "../config.js";
 
 export function parsePrivateKey(raw: string): PrivateKey {

@@ -81,13 +81,13 @@ export function WhoSigns() {
         {NODES.map((n) => (
           <div
             key={n.id}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
+            className={`absolute flex -translate-x-1/2 gap-[6px] ${n.y < 50 ? "-translate-y-full flex-col-reverse" : "flex-col"}`}
             style={{ left: `${n.x}%`, top: `${n.y}%` }}
           >
             <div className="px-[12px] py-[8px] text-[15px] lg:text-[18px]" style={{ background: n.bg }}>
               {n.label}
             </div>
-            <p className="mt-[6px] max-w-[150px] font-mono text-[10px] uppercase tracking-[0.06em] text-grey-04 lg:text-[11px]">
+            <p className="max-w-[150px] font-mono text-[10px] uppercase tracking-[0.06em] text-grey-04 lg:text-[11px]">
               {n.note}
             </p>
           </div>

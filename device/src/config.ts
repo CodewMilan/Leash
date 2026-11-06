@@ -32,8 +32,8 @@ export const config = {
   zg: {
     apiKey: required("ZG_API_KEY"),
     privateKey: required("ZG_PRIVATE_KEY"),
-    baseUrl: optional("ZG_BASE_URL", "https://pc.0g.ai/v1"),
-    model: optional("ZG_MODEL", ""),
+    baseUrl: optional("ZG_BASE_URL", "https://router-api.0g.ai/v1"),
+    model: optional("ZG_MODEL", "0gm-1.0-35b-a3b"),
     rpcUrl: optional("ZG_RPC_URL", "https://evmrpc-testnet.0g.ai"),
     indexerUrl: optional("ZG_INDEXER_URL", "https://indexer-storage-testnet-turbo.0g.ai"),
     timeoutMs: positiveNumber("ZG_TIMEOUT_MS", "20000"),
@@ -48,6 +48,14 @@ export const config = {
   world: {
     clientId: required("WORLD_CLIENT_ID"),
     clientSecret: required("WORLD_CLIENT_SECRET"),
+    issuer: optional("WORLD_ISSUER", "https://auth.world.org").replace(/\/$/, ""),
+    authMethod: optional("WORLD_AUTH_METHOD", "basic") as "basic" | "post",
+    /** Pairwise World ID `sub` of the owner; only they can approve. Set by `pnpm enroll:world`. */
+    ownerSub: process.env.WORLD_OWNER_SUB?.trim() || null,
+    requiredAcr: optional("WORLD_REQUIRED_ACR", "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
     approvalTimeoutMs: positiveNumber("WORLD_APPROVAL_TIMEOUT_MS", "120000"),
   },
   spendLimitUsdc: positiveNumber("SPEND_LIMIT_USDC", "5"),

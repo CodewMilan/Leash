@@ -99,7 +99,7 @@ export function SpendRules() {
                   type="button"
                   aria-pressed={mode === m}
                   onClick={() => setMode(m)}
-                  className="relative z-10 px-[14px] py-[6px] capitalize"
+                  className="relative z-10 whitespace-nowrap px-[14px] py-[6px]"
                 >
                   {m === "demo" ? "Demo device" : "Production"}
                 </button>

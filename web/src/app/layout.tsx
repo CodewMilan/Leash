@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "A handheld AI assistant that pays for things for you, but can never spend over your limit without your thumb. Built with 0G, Hedera and World ID.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${urbanist.variable} ${geistMono.variable} antialiased`}>
       <body className="min-h-full">{children}</body>

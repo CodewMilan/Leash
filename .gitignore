@@ -8,3 +8,9 @@ dist/
 build/
 .DS_Store
 agent-tools/
+
+# runtime data and per-device files
+device/data/
+device/models/
+device/contacts.json
+merchant/data/

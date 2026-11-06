@@ -13,7 +13,7 @@ export function WatchLive() {
   const [buzz, setBuzz] = useState(4);
   const [brightness, setBrightness] = useState(100);
 
-  const { contextSafe } = useGSAP(
+  useGSAP(
     () => {
       if (prefersReducedMotion()) return;
       gsap.from("[data-watch-copy] > *", {
@@ -28,14 +28,14 @@ export function WatchLive() {
     { scope: ref },
   );
 
-  const shake = contextSafe((amp: number) => {
+  const shake = (amp: number) => {
     if (prefersReducedMotion() || !deviceRef.current || amp === 0) return;
     gsap.fromTo(
       deviceRef.current,
       { x: 0 },
       { keyframes: { x: [0, -amp, amp, -amp * 0.7, amp * 0.7, 0] }, duration: 0.45, ease: "none", overwrite: true },
     );
-  });
+  };
 
   return (
     <section
@@ -70,8 +70,8 @@ export function WatchLive() {
           />
           <ControlRow label="LED" value={brightness} min={0} max={100} step={1} onChange={setBrightness} />
         </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div ref={deviceRef} className="w-[52%]">
+        <div className="absolute inset-0 flex items-end justify-center pb-[8%] pl-[18%]">
+          <div ref={deviceRef} className="w-[50%]">
             <Device
               state="thumb"
               amount="20.00"
@@ -90,8 +90,8 @@ export function WatchLive() {
           Every payment, its HashScan receipt and the 0G request ID behind it, as they land on Hedera.
         </p>
         <div className="mt-[14px] grid grid-cols-[1fr_auto]">
-          <span className="flex h-[46px] items-center bg-grey-01 px-[14px] font-mono text-[12px] uppercase tracking-[0.04em] text-grey-04">
-            Hedera testnet · public mirror node
+          <span className="flex h-[46px] items-center truncate bg-grey-01 px-[14px] font-mono text-[12px] uppercase tracking-[0.04em] text-grey-04">
+            Hedera mirror node
           </span>
           <Link href="/dashboard" className="flex h-[46px] items-center bg-black-00 px-[24px] text-[14px] text-white-00">
             Open dashboard

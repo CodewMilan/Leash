@@ -1,4 +1,4 @@
-import { TopicMessageSubmitTransaction } from "@hashgraph/sdk";
+import { TopicMessageSubmitTransaction } from "@hiero-ledger/sdk";
 import { config } from "../config.js";
 import { deviceKey, hederaClient } from "./client.js";
 
@@ -15,6 +15,7 @@ export interface SpendLogEntry {
   approvals: { fingerprint: boolean; world: boolean; worldReference?: string };
   zgRequestId: string;
   memoryRootHash: string;
+  memoryTxHash: string;
   at: string;
 }
 

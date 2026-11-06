@@ -51,8 +51,8 @@ export interface EpisodeRecord {
   outcome?: "paid" | "refused" | "answered" | "safe_mode" | "error";
   reason?: string;
   decision?: unknown;
-  zg?: { requestId: string; model: string };
-  memory?: { rootHash: string; txHash: string };
+  zg?: { requestId: string; chatId: string | null; provider: string | null; teeVerified: boolean | null; model: string };
+  memory?: { rootHash: string; txHash: string; txSeq: number };
   payment?: {
     amountUsdc: string;
     payTo: string;

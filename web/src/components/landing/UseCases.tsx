@@ -187,7 +187,7 @@ export function UseCases() {
 
   return (
     <div ref={scrollerRef} id="cases" className="lg:h-[560vh]">
-      <section className="flex flex-col pb-[20px] lg:sticky lg:top-[var(--header-h)] lg:h-[calc(100dvh-var(--header-h))]">
+      <section className="flex flex-col overflow-x-clip pb-[20px] lg:sticky lg:top-[var(--header-h)] lg:h-[calc(100dvh-var(--header-h))]">
         <SectionLabel>When it pays</SectionLabel>
         <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[clamp(360px,31.72vw,609px)_minmax(0,1fr)]">
           <ul className="flex flex-col px-[15px] pt-[20px] lg:pt-[24px]">
@@ -197,7 +197,7 @@ export function UseCases() {
                   type="button"
                   data-case-item
                   onClick={() => jumpTo(i)}
-                  aria-current={i === active}
+                  aria-current={i === active ? "true" : undefined}
                   className="text-left text-[clamp(34px,3.6vw,58px)] leading-[1.02] tracking-[-0.04em]"
                   style={{ color: i === 0 ? "#262626" : "#e1e1e1", paddingLeft: i === 0 ? 20 : 0 }}
                 >
