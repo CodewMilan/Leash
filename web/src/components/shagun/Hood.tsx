@@ -1,12 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { Blocks, CreditCard, Fingerprint, Mail, ReceiptText, ScanFace, Undo2, Vault } from "lucide-react";
+import { Blocks, CreditCard, Fingerprint, Mail, ReceiptText, Undo2, Vault } from "lucide-react";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap";
 
 const PARTS = [
   { name: "Whitechain", role: "Test USDT, no gas", bg: "#193ef9", light: true, Icon: Blocks },
-  { name: "World ID", role: "One verified human", bg: "#f955b2", light: false, Icon: ScanFace },
   { name: "Passkey", role: "Their phone confirms", bg: "#36d972", light: false, Icon: Fingerprint },
   { name: "Vault", role: "Holds it until claimed", bg: "#a199ff", light: false, Icon: Vault },
   { name: "Lithic", role: "Sandbox virtual card", bg: "#ff942e", light: false, Icon: CreditCard },

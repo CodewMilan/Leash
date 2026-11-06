@@ -1,8 +1,8 @@
 # Shagun
 
-A Diwali gift sent in dollars, claimed by a verified human, with an explicitly simulated UPI payout. Built in the existing Next.js website and brand kit.
+A Diwali gift sent in dollars, claimed with a passkey, and redeemed as a gift-sized Lithic sandbox virtual card. Built in the existing Next.js website and brand kit.
 
-**Current stage:** application, contract and durable worker implementation with local automated tests. Whitechain network/token configuration has been checked through RPC. This vault still needs an actual deployment, explorer source verification, real World verification and a genuine RazorpayX test payout before the full demo can be claimed as working. Live-money production is blocked by the requirements in [operations.md](docs/operations.md).
+**Current stage:** sender, verified claim, per-gift card issuance, hosted card details, authorization reservations, clearing reconciliation and partial chain settlement are connected in code. Local tests cover the integration; real end-to-end provider/chain validation requires a compatible deployed vault, Lithic signed webhooks and an HTTPS app origin. Sandbox cards cannot buy real goods. USDT is not converted into card funds.
 
 ## Start here
 
@@ -26,9 +26,9 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open http://localhost:3000. Run `pnpm worker` from `web/` in a second terminal after configuring the vault and operational keys. Secrets are read from environment variables. CLI scripts optionally load `web/.env.local`; it is ignored by git.
+Open http://localhost:3000. Run `pnpm worker` from `web/` in a second terminal after configuring the vault and operational keys. The worker is required for claim confirmation, card issuance, spending settlement and expiry reconciliation. Secrets are read from environment variables. CLI scripts optionally load `web/.env.local`; it is ignored by git.
 
-Pages: `/` (landing), `/dashboard` (send/history/CSV), `/send` (the embeddable "Send a Shagun" popup), `/claim/[giftId]#secret` (recipient), and `/gifts/[giftId]` (authorized receipt). Unconfigured services produce setup/error states, not fabricated transactions.
+Pages: `/` (landing), `/dashboard` (send/history/CSV), `/send` (the embeddable "Send a Shagun" popup), `/claim/[giftId]#secret` (recipient), and `/gifts/[giftId]` (authorized receipt), and `/shop` (recipient-authenticated sandbox purchases). `/gifts` redirects to the Shagun dashboard; the standalone Leash Gifts pass is retired. Unconfigured services produce setup/error states, not fabricated transactions.
 
 ### Sender wallets
 
@@ -81,42 +81,42 @@ pnpm build
 E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
-## Lithic sandbox cards (Phase 0)
+## Shagun virtual gift cards
 
-The card path follows [card-phase-plan.md](docs/card-phase-plan.md). Phase 0 proves sandbox access only; claims do not issue cards yet. The server only ever calls `https://sandbox.lithic.com`, so a production key cannot be used by mistake.
+New claims use card redemption. The recipient opens the private gift link, confirms a passkey and presents the private gift-link secret. After the on-chain claim confirms, the worker reserves one virtual card per gift and creates it paused with an exact lifetime budget: a $25 gift receives a 2,500-cent card limit; $51.50 receives 5,150 cents. Amounts must be whole cents. There is no fixed $100 sample pass or shared operator card in this journey.
 
-Lithic has to reach the webhooks over public HTTPS, so run the site behind a tunnel (for example `cloudflared tunnel --url http://localhost:3000`) and set `APP_URL` to the tunnel URL. The card frames also need that HTTPS origin, so open `/dev/card` through the tunnel too.
+Card issuance is durable: the operation is recorded before calling Lithic. An interrupted create is recovered by the gift's unique memo instead of issuing a replacement. Full PAN/CVV never enter our card-read API or database; recipient-only hosted frames display them after a fresh passkey confirmation. Senders retain accounting receipts without access to recipient card details.
+
+Configure `LITHIC_API_KEY`, `LITHIC_ENVIRONMENT=sandbox`, `LITHIC_ASA_SECRET`, and `LITHIC_EVENTS_SECRET`, along with the database, Whitechain vault/roles in `.env.example`. UPI provider settings are optional for new card gifts. Use a compatible deployment of `ShagunVault` exposing `spend` and `closeClaimed`; do not point old funded gifts at a replacement vault.
+
+Lithic webhooks and hosted frames require a public HTTPS app origin. Run a tunnel to the development server, set `APP_URL` to that exact HTTPS origin and restart the app and worker. Open the gift through that URL. Enroll the signed ASA and event endpoints:
 
 ```bash
 cd web
-# Set LITHIC_API_KEY (sandbox) in .env.local first.
-pnpm lithic:phase0 check                         # key works, ASA enrollment status
-pnpm lithic:phase0 enroll https://<tunnel>       # ASA → /api/webhooks/lithic/asa, saves LITHIC_ASA_SECRET
-pnpm lithic:phase0 subscribe https://<tunnel>    # events → /api/webhooks/lithic/events, saves LITHIC_EVENTS_SECRET
-pnpm lithic:phase0 card                          # $25 lifetime-limit virtual Mastercard (add --visa for Visa), saves LITHIC_PHASE0_CARD_TOKEN
-pnpm lithic:phase0 authorize 800 --clear         # approve through ASA, then settle
-pnpm lithic:phase0 authorize 3000                # over budget, expect a decline
+pnpm lithic:phase0 check
+pnpm lithic:phase0 enroll https://<your-tunnel>
+pnpm lithic:phase0 subscribe https://<your-tunnel>
+pnpm db:migrate
+pnpm worker
 ```
 
-The script writes secrets and the card token into `web/.env.local` and never prints them. Restart the dev server after it saves something.
+The Phase 0 script saves webhook secrets into ignored `web/.env.local` without printing them. Restart running processes after it writes them. `/dev/card` remains a separate development diagnostic; its explicitly configured Phase 0 card is never reused for gifts.
 
-Webhooks: `/api/webhooks/lithic/asa` answers Auth Stream Access requests with `{ token, result }` (signed with `LITHIC_ASA_SECRET`; anything other than a valid Phase 0 USD purchase within $25 is declined). `/api/webhooks/lithic/events` records each event once (`LITHIC_EVENTS_SECRET`). In development, `/dev/card` shows the Phase 0 card through Lithic's hosted card frames (`lithic-embed`, sandbox mode); it needs a session, so the database must be running.
+The recipient's claim page displays preparing/ready/closing/reconciliation states, gift budget, purchase holds, cleared spending and available funds. `/shop` derives payment cards from that recipient's passkey-authenticated Shagun session. Catalog prices are calculated on the server; purchases call Lithic's sandbox simulator and reconcile real provider transaction evidence. There are no real merchant purchases or bank transfers. Keep `LITHIC_DATA_DIR` (default `web/.data/lithic`) persistent for shop order recovery.
 
-### Sandbox shop (interim)
+Signed ASA requests reserve available budget atomically, declining over-budget, unsupported or expired requests. Signed events are durably queued; the worker fetches current provider transactions and enqueues unique partial `spend` operations. Pending chain settlements remain visible as pending work. Unexpected credits/refunds or amounts outside the supported USD demo are frozen for reconciliation; the vault cannot reverse completed card spending.
 
-`/shop` ("Leash Supply") is a sandbox store: a catalog and cart with server-side prices, where checkout sends a real Lithic sandbox authorization and clearing for the selected card and records the receipt. `/gifts` is the operator page that issues or recovers that card. Set `LITHIC_API_KEY` and `LITHIC_SANDBOX_ACCESS_CODE` (at least 16 characters) and sign in on `/gifts` with the code. Records live in `LITHIC_DATA_DIR` (default `web/.data/lithic`, ignored by git); keep that directory, because it stops a second card being issued or a payment being cleared twice.
+At expiry, the worker stops approvals and closes the card, then requires complete provider transaction reconciliation, zero holds and no unresolved settlement/event work before returning unused USDT. A gift whose card creation was never attempted can close without a provider card. Ambiguous issuance must recover first. Unclaimed gifts keep their permissionless expiry refund. Existing UPI claims retain their original payout work; new card claims never queue whole-gift cash-out.
 
-Today this is one shared operator card with a fixed $100 lifetime limit; it is not yet tied to a claimed Shagun gift, the gift ledger or the vault. Once an ASA responder is enrolled, shop authorizations are expected to reach `/api/webhooks/lithic/asa`, which currently declines cards that are not tagged for Phase 0.
+`/api/sandbox/card` and `/api/sandbox/session` return 410. Previously issued sample-card records remain on disk for operator recovery, but are not selectable by Shagun recipients.
 
 Use `pnpm exec playwright install chromium` once if no browser is installed. Browser tests isolate their server on port 3100 and a separate build directory. CI runs type/lint/tests, compilation, migrations, production build and browser checks without real provider credentials.
 
 ## How value moves
 
-The sender connects an external wallet (MetaMask first) through Privy and signs an EIP-3009 authorization whose nonce commits to all gift terms. The relayer pays gas to fund the vault. A passkey and backend-verified World proof authorize a claim; campaign uniqueness is also checked on-chain. The worker settles claimed USDT to the immutable treasury, then requests the RazorpayX **test** payout using a stable idempotency key.
+A sender signs an EIP-3009 authorization for official test USDT; the relayer sponsors the gas to fund the vault. A fresh passkey session and the private link secret authorize the recipient's claim. Card approvals reserve the gift budget locally, while cleared purchases enqueue partial on-chain transfers to the treasury. Reconciled unused value returns to the sender after expiry.
 
-The INR payout uses a separate prefunded test balance. **Razorpay does not convert USDT into INR, and test payouts send no money to a bank account.** The displayed INR rate is indicative and snapshotted per gift.
-
-An expiry worker submits permissionless returns for unclaimed gifts. Expiry alone does not execute a transaction. Pausing new gifts/claims does not block refunds. A separate admin can rotate operational keys using the vault's owner controls.
+The Lithic sandbox budget and Whitechain USDT are separate ledgers. Neither test USDT nor sandbox purchases have monetary value, and this integration does not provide a production conversion or off-ramp.
 
 ## Why Whitechain USDT?
 
@@ -126,6 +126,6 @@ On testnet, relayer WBT comes from the faucet. The proposed production 0.5% USDT
 
 ## Limitations
 
-Demo sender accounts need prefunded test USDT. An unregistered envelope goes to its first verified human claimant, which does not prevent theft before that claim. Handles, production funding/off-ramping, a complete event/reorg indexer, automatic transaction replacement, CRE and ENS are not implemented. World integration trusts server-side verification and signed attestations. Production release requires independent review and the gates in the operations guide.
+Demo sender accounts need prefunded test USDT. An unregistered envelope goes to its first passkey-authenticated claimant, which does not prevent theft before that claim. Handles, production funding/off-ramping, a complete chain event/reorg indexer, automatic transaction replacement, CRE and ENS are not implemented. Card reconciliation supports ordinary USD sandbox purchases; exceptional refunds/credits require operator reconciliation. World ID has been removed. Campaign limits are one gift per passkey, not one per unique person. The backend derives a keyed recipient commitment for the existing vault ABI and signs claim attestations. Production release requires independent review and the gates in the operations guide.
 
 The old device, merchant, Hedera and 0G modules are removed. Keep future work within the Shagun website.

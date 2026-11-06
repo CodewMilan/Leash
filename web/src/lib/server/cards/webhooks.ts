@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AppError, required } from "../config";
-import { sql } from "../db";
+import { withTransaction } from "../db";
+import { authorizeGiftCard } from "./ledger";
 import { readLimitedBody } from "../http/response";
 import { verifyLithicSignature } from "./lithic";
 
@@ -53,9 +54,13 @@ function decide(asa: AsaRequest) {
   const { amount, currency } = charge(asa);
   if (!["AUTHORIZATION", "FINANCIAL_AUTHORIZATION"].includes(asa.status))
     return { result: "UNAUTHORIZED_MERCHANT", reason: "unsupported_status" };
-  if (asa.card.tags?.purpose !== PHASE0_PURPOSE)
+  if (
+    asa.card.tags?.purpose !== PHASE0_PURPOSE ||
+    asa.card.token !== process.env.LITHIC_PHASE0_CARD_TOKEN
+  )
     return { result: "UNAUTHORIZED_MERCHANT", reason: "unknown_card" };
-  if (currency !== "USD") return { result: "UNAUTHORIZED_MERCHANT", reason: "unsupported_currency" };
+  if (currency !== "USD")
+    return { result: "UNAUTHORIZED_MERCHANT", reason: "unsupported_currency" };
   if (amount <= 0 || amount > PHASE0_LIMIT_CENTS)
     return { result: "INSUFFICIENT_FUNDS", reason: "over_budget" };
   return { result: "APPROVED", reason: "within_budget" };
@@ -63,7 +68,7 @@ function decide(asa: AsaRequest) {
 
 /**
  * Auth Stream Access responder. Lithic times out at six seconds and retries 5xx responses, so the
- * decision is a pure function of the request and every failure after verification declines.
+ * gift decisions reserve budget under a short database transaction. Every failure after verification declines.
  */
 export async function receiveAuthorizationRequest(request: Request) {
   const started = Date.now();
@@ -75,7 +80,18 @@ export async function receiveAuthorizationRequest(request: Request) {
   let decision = { result: "UNAUTHORIZED_MERCHANT", reason: "malformed_request" };
   if (parsed.success) {
     try {
-      decision = decide(parsed.data);
+      const asa = parsed.data;
+      const amount = charge(asa);
+      decision = await authorizeGiftCard({
+        token: asa.token,
+        cardToken: asa.card.token,
+        amount: amount.amount,
+        currency: amount.currency,
+        status: asa.status,
+      });
+      // The explicit development card remains separate from claimed gift budgets.
+      if (decision.reason === "unknown_card" && process.env.NODE_ENV !== "production")
+        decision = decide(asa);
     } catch {
       decision = { result: "UNAUTHORIZED_MERCHANT", reason: "error" };
     }
@@ -102,24 +118,27 @@ export async function receiveAuthorizationRequest(request: Request) {
   );
 }
 
-/** Asynchronous Lithic events. Phase 0 records and logs their shape only. */
+/** Persist transaction references atomically; the worker fetches authoritative provider evidence. */
 export async function receiveLithicEvent(request: Request) {
   const { id, body } = await verifiedBody(request, "LITHIC_EVENTS_SECRET");
   const event = lithicEvent.safeParse(body);
   if (!event.success) throw new AppError("Invalid webhook body.", 400);
-  const [fresh] = await sql<{ id: string }>(
-    "INSERT INTO webhook_events(id) VALUES($1) ON CONFLICT DO NOTHING RETURNING id",
-    [`lithic:${id}`],
+  const transaction = event.data.payload.token;
+  const isTransaction = ["card_transaction.created", "card_transaction.updated"].includes(
+    event.data.event_type,
   );
-  console.log(
-    JSON.stringify({
-      event: "lithic.event",
-      webhookId: id,
-      type: event.data.event_type,
-      objectId: event.data.payload.token ?? null,
-      status: event.data.payload.status ?? null,
-      duplicate: !fresh,
-    }),
-  );
+  if (isTransaction && (!transaction || !z.string().uuid().safeParse(transaction).success))
+    throw new AppError("Invalid transaction reference.", 400);
+  await withTransaction(async (db) => {
+    const { rows } = await db.query<{ id: string }>(
+      "INSERT INTO webhook_events(id) VALUES($1) ON CONFLICT DO NOTHING RETURNING id",
+      [`lithic:${id}`],
+    );
+    if (rows.length && isTransaction)
+      await db.query(
+        "INSERT INTO card_events(id,transaction_token) VALUES($1,$2) ON CONFLICT DO NOTHING",
+        [`lithic:${id}`, transaction],
+      );
+  });
   return Response.json({ received: true }, { headers: { "cache-control": "no-store" } });
 }

@@ -8,7 +8,7 @@ Deploy the Next.js application behind HTTPS and run `pnpm worker` as a separate 
 
 Apply migrations once before starting a release. Web instances may scale horizontally. Multiple workers are safe only while all follow the same PostgreSQL session advisory-lock protocol; one acquires the chain submission lock at a time. Do not use a database connection pooler in transaction mode for the worker lock connection. Use direct PostgreSQL or session pooling. The current lock is process-session scoped; a worker connection loss requires process restart and reconciliation before running another submitter.
 
-Use a secret manager to inject environment variables. `DATA_ENCRYPTION_KEY` also derives human commitments: changing it would change campaign identity mapping and make old jobs unreadable. Back it up securely with the database. A versioned key-rotation migration is required before routine production rotation; replacing the value in place is not supported.
+Use a secret manager to inject environment variables. `DATA_ENCRYPTION_KEY` also derives passkey recipient commitments: changing it would change campaign recipient mapping and make old jobs unreadable. Back it up securely with the database. A versioned key-rotation migration is required before routine production rotation; replacing the value in place is not supported.
 
 ## Health and observability
 
@@ -25,7 +25,7 @@ Alert on stale worker heartbeats, failed jobs, repeated retry errors, old pendin
 
 **Pending transaction:** inspect its public hash and relayer nonce. The current worker does not automatically replace dropped or underpriced transactions. Pause new sends if required, resolve the transaction with the same nonce under operator review, then reconcile its receipt. Do not delete the journal to force a retry.
 
-**Rejected claim:** a definitive claim failure releases the database reservation and campaign membership so the user can obtain a fresh proof. Expired unclaimed funds can then be returned. Connectivity failures retain the reservation until the transaction outcome is known.
+**Rejected claim:** a definitive claim failure releases the database reservation and campaign membership so the user can confirm their passkey and retry. Expired unclaimed funds can then be returned. Connectivity failures retain the reservation until the transaction outcome is known.
 
 **Expired gift:** run the worker and inspect its refund job. Anyone may call `refundExpired` on an unclaimed gift after expiry. An external confirmed return is reconciled from its `Returned` event. Keep the vault deployment block configured to bound log queries. Refunds remain callable when the vault is paused.
 
@@ -42,7 +42,7 @@ Alert on stale worker heartbeats, failed jobs, repeated retry errors, old pendin
 - Configure Privy and complete custom-chain signing on the intended phone.
 - Deploy and source-verify this vault on 1874. Commit the real public deployment record and explorer links.
 - Submit an actual official-USDT gasless gift and prove the sender's WBT balance stays unchanged.
-- Use real World verification for success and a second gift in the same campaign for rejection. Simulator tests do not prove production identity behavior.
+- Verify passkey registration, fresh-session checks and private-link secret validation. Test that the same passkey cannot claim two gifts in one campaign; do not present this as person uniqueness.
 - Rehearse a real expiry return, including worker recovery and receipt display.
 - Confirm the existing Razorpay account has **RazorpayX test payout** access, outbound IP allowlisting, webhook delivery, and a genuine test payout ID. Payment-gateway keys alone are not evidence of payout access.
 - Confirm all simulated payout labels, indicative rates, starting-point commits and partner submission evidence are accurate.
@@ -51,11 +51,25 @@ Alert on stale worker heartbeats, failed jobs, repeated retry errors, old pendin
 
 - Integrate an authorized production conversion/payout partner and reconcile actual INR funding, fees, tax treatment, failures and customer support. The current Razorpay adapter cannot be enabled for live crypto payouts by changing a key.
 - Obtain independent contract/security review, operational threat review, and load/failure testing using the intended hosting and RPC providers.
-- Complete real World v4 nullifier-scope and device compatibility tests; avoid interpreting human uniqueness as intended-recipient identity for an unregistered envelope.
+- Complete passkey device compatibility and recovery tests. Possession of an unclaimed link plus a passkey does not prove intended-recipient identity.
 - Move operational signing to controlled custody, rehearse admin pause/key rotation, and define treasury reconciliation and incident ownership.
 - Implement a complete chain event/reorg reconciliation strategy, configurable finality appropriate to the chain, and reviewed dropped-transaction replacement.
 - Add authentication/session revocation operations, a data-retention/deletion policy for payout details, and versioned encryption/identity-key rotation.
-- Rehearse database backup restore, provider outages, worker lock/connection loss and webhook replay. Configure external rate limiting at the trusted reverse proxy and a production CSP tested with Privy/World.
+- Rehearse database backup restore, provider outages, worker lock/connection loss and webhook replay. Configure external rate limiting at the trusted reverse proxy and a production CSP tested with Privy and hosted card frames.
 - Replace demo funding assumptions with an actual sender funding flow. Verify production business/compliance requirements with the chosen partners before making availability claims.
 
 These are explicit release blockers, not capabilities implied by a successful local build.
+
+## Shagun card operations
+
+New claims use `gifts.redemption=card`; pre-existing claims/payout intents are migrated to `upi`. Never queue a whole-gift `settle`/`cashOut` for a card gift. Keep the configured vault compatible with `spend`, `closeClaimed` and the ABI's tracked spent amount. Do not move already-funded gifts to another vault address.
+
+Card preparation is persisted in `gift_cards` before a provider request. On ambiguous create, retain `operation_id`, `request_started`, memo and card token. The worker reconciles that card instead of repeating creation. Missing webhook secrets leave preparation pending. An expired ambiguous issuance must recover the existing card before closure.
+
+`card_authorizations` owns approval decisions and holds. `card_events` durably queues signed webhook references without retaining full provider payloads. Clearings queue `spend:<reference>` jobs with a stable chain reference. Inspect queued/failed work and card `reconciliation` states; never change them to ready just to bypass an exception. Refunds/credits and unexpected amounts require operator review because on-chain spend cannot be reversed.
+
+Expiry closure requires a closed provider card, complete transaction pagination, zero outstanding holds, and no pending settlement/event work; compare cleared budget with vault spending before `closeClaimed`. Preserve reconciliation checkpoints. Do not equate closing a provider card with finality of all merchant liability. The supported sandbox demo must clear or void every authorization before demonstrating return.
+
+The old Leash Gifts sample routes are retired. Keep `.data/lithic/gift.json` and existing sample card/order files for manual provider recovery; do not adopt that shared card into a recipient's gift. `/shop` now requires a passkey-authenticated recipient and chooses cards through their claimed Shagun gifts. Full details require a fresh passkey confirmation and HTTPS origin. UPI credentials are optional for new-card readiness, but still needed to reconcile existing UPI payouts.
+
+World ID was removed by user request. New claims require no World app/RP/signing keys. Existing vault ABI names (`human`, `boundHuman`) remain for compatibility; new commitments identify a passkey credential, not a unique human.

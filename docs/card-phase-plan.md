@@ -1,3 +1,5 @@
+> Current identity decision (Nov 6): World ID is removed. Replace historical World-proof steps below with a fresh passkey session and the private gift-link secret. Campaign limits are per passkey, not per person. See `docs/context.md` and current implementation.
+
 # Card execution plan (Lithic sandbox)
 
 **Decision:** Lithic sandbox virtual cards are the main redemption path. Stripe Issuing was tried first and dropped; do not switch back without an explicit product decision. RazorpayX UPI remains optional and off the critical path. This plan supersedes the UPI-first execution order in `implementation-plan.md`.

@@ -334,7 +334,7 @@ export function GiftComposer({
       </div>
       {campaignLocked ? (
         draft.campaign && (
-          <p className="microcopy">Campaign · {draft.campaign} · one gift per verified human</p>
+          <p className="microcopy">Campaign · {draft.campaign} · one gift per passkey</p>
         )
       ) : (
         <div>
@@ -351,7 +351,7 @@ export function GiftComposer({
             autoComplete="off"
           />
           <p className="field-hint">
-            Use the same name across envelopes to allow one gift per verified human.
+            Use the same name across envelopes to allow one gift per passkey.
           </p>
         </div>
       )}

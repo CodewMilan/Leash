@@ -11,7 +11,7 @@ export async function readResource(path: string, s: Session): Promise<Response |
   if (path === "gifts" || path === "gifts/export") {
     if (!s.sender) throw new AppError("Sign in as a sender first.", 401);
     const rows = await sql<GiftRow>(
-      `SELECT g.*,p.payout_id,p.status AS payout_status FROM gifts g LEFT JOIN payouts p ON p.gift_id=g.id WHERE g.sender=$1 ORDER BY g.created_at DESC LIMIT 500`,
+      `SELECT g.*,p.payout_id,p.status AS payout_status,c.status AS card_status,c.budget_cents AS card_budget,c.reserved_cents AS card_reserved,c.cleared_cents AS card_cleared FROM gifts g LEFT JOIN payouts p ON p.gift_id=g.id LEFT JOIN gift_cards c ON c.gift_id=g.id WHERE g.sender=$1 ORDER BY g.created_at DESC LIMIT 500`,
       [s.sender],
     );
     if (path === "gifts/export") {
@@ -24,6 +24,10 @@ export async function readResource(path: string, s: Session): Promise<Response |
         "Create transaction",
         "Claim transaction",
         "Return transaction",
+        "Card status",
+        "Card budget (USD cents)",
+        "Card holds (USD cents)",
+        "Card spending (USD cents)",
         "UPI test payout ID",
         "UPI test payout status",
       ];
@@ -38,6 +42,10 @@ export async function readResource(path: string, s: Session): Promise<Response |
           g.created_tx,
           g.claim_tx,
           g.refund_tx,
+          g.card_status,
+          g.card_budget,
+          g.card_reserved,
+          g.card_cleared,
           g.payout_id,
           g.payout_status,
         ]),

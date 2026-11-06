@@ -114,8 +114,8 @@ export default function ShopPage() {
   return <div className={styles.shop}>
     <div className={styles.environment}>A working sandbox store. Test payments only. No products will be shipped.</div>
     <header className={styles.header}>
-      <Link className={styles.brand} href="/shop">leash<span>supply</span></Link>
-      <nav aria-label="Store navigation"><a href="#collection">The collection</a><Link href="/gifts">Your gift cards</Link><a href="#bag">Bag <span>{quantity}</span></a></nav>
+      <Link className={styles.brand} href="/shop">Shagun<span>shop</span></Link>
+      <nav aria-label="Store navigation"><a href="#collection">The collection</a><Link href="/dashboard">Send a Shagun</Link><a href="#bag">Bag <span>{quantity}</span></a></nav>
     </header>
     <main className={styles.main}>
       <section className={styles.intro}>
@@ -133,7 +133,7 @@ export default function ShopPage() {
               <button disabled={!!busy || !!unresolved || (cart.find(item => item.sku === product.sku)?.quantity || 0) >= 10} onClick={() => update(product.sku, 1)} aria-label={`Add ${product.name} to bag`}>Add to bag <span aria-hidden="true">+</span></button>
             </article>)}
           </div>
-          <div className={styles.about}><h2>A real checkout.<br />A safe place to try it.</h2><p>Choose something, pay with your Lithic sandbox card, and see an authorization followed by a settled transaction in your provider dashboard. The same card you generated in Leash, with the purchase recorded by Lithic.</p></div>
+          <div className={styles.about}><h2>A real checkout.<br />A safe place to try it.</h2><p>Choose something, pay with your Lithic sandbox card, and see an authorization followed by a settled transaction in your provider dashboard. Use the card from your claimed Shagun gift, with the purchase recorded by Lithic.</p></div>
         </section>
         <aside id="bag" className={styles.bag} aria-label="Shopping bag and checkout">
           {active ? <>
@@ -141,7 +141,7 @@ export default function ShopPage() {
             <p className={styles.receiptIntro}>{active.status === "PAID" ? "Your sandbox purchase was approved and settled by Lithic. Nothing will be shipped." : active.status === "DECLINED" ? "The provider did not complete this purchase. No success has been assumed." : "This order is saved. Check the existing payment before starting another one."}</p>
             <ul className={styles.lines}>{active.items.map(item => <li key={item.sku}><span>{item.name}<small>Quantity {item.quantity}</small></span><strong>{usd(item.subtotal)}</strong></li>)}</ul>
             <div className={styles.total}><span>Total · USD</span><strong>{usd(active.total)}</strong></div>
-            <dl className={styles.evidence}><div><dt>Paid with</dt><dd>•••• {active.lastFour}</dd></div><div><dt>Merchant</dt><dd>Leash Supply</dd></div><div><dt>Provider status</dt><dd>{active.providerStatus || "Not confirmed"}</dd></div><div><dt>Result</dt><dd>{active.providerResult?.replaceAll("_", " ") || "Awaiting provider"}</dd></div></dl>
+            <dl className={styles.evidence}><div><dt>Paid with</dt><dd>•••• {active.lastFour}</dd></div><div><dt>Merchant</dt><dd>Shagun Shop</dd></div><div><dt>Provider status</dt><dd>{active.providerStatus || "Not confirmed"}</dd></div><div><dt>Result</dt><dd>{active.providerResult?.replaceAll("_", " ") || "Awaiting provider"}</dd></div></dl>
             {active.transactionToken && <p className={styles.reference}>Lithic transaction<br /><code>{active.transactionToken}</code></p>}
             <p className={styles.reference}>Order {active.id.slice(0, 8)}<br />Descriptor: {active.descriptor}</p>
             {(active.status === "CREATED" || active.status === "AUTHORIZED") && <button className={styles.pay} disabled={!!busy} onClick={() => void run("Completing this sandbox order…", () => payExisting(active))}>{active.status === "AUTHORIZED" ? "Settle authorized purchase" : "Pay this saved order"}</button>}
@@ -157,7 +157,7 @@ export default function ShopPage() {
             <div className={styles.delivery}><span>Delivery</span><span>Not shipped · sandbox</span></div>
             <div className={styles.total}><span>Total · USD</span><strong>{usd(cartTotal)}</strong></div>
             <label className={styles.cardLabel}>Pay with a sandbox card<select value={source} disabled={!loaded || !!busy || !cards.length} onChange={event => setSource(event.target.value)}><option value="" disabled>{!loaded ? "Checking your cards…" : "Select a sandbox card"}</option>{cards.map(card => <option key={card.sourceId} value={card.sourceId}>{card.label} · {card.state}</option>)}</select></label>
-            {!cards.length && loaded && <p className={styles.loginNote}>{authenticated ? "No issued card is available in this session." : "Open your received pass to use its sandbox card."} <Link href="/gifts">Open received pass</Link>.</p>}
+            {!cards.length && loaded && <p className={styles.loginNote}>{authenticated ? "No issued card is available in this session." : "Open your original Shagun claim link to access its card."} <Link href="/dashboard">Send a Shagun</Link>.</p>}
             <button className={styles.pay} disabled={!loaded || !!busy || !cart.length || !source} onClick={() => void checkout()}>Pay {usd(cartTotal)} in sandbox <span aria-hidden="true">→</span></button>
             <p className={styles.paymentNote}>Provider authorization + clearing. No real charge. No card number entered or exposed in this checkout.</p>
             <button className={styles.secondary} disabled={!!busy} onClick={() => void run("Refreshing available cards…", load)}>Refresh cards & orders</button>
@@ -166,7 +166,7 @@ export default function ShopPage() {
         </aside>
       </div>
       {history.length > 0 && <section className={styles.history} aria-label="Your sandbox orders"><div className={styles.sectionHeading}><h2>Your orders</h2><span>Recorded on this server</span></div><ul>{history.map(order => <li key={order.id}><button disabled={!!busy} onClick={() => void run("Reading this order…", async () => remember((await api(`/orders/${order.id}`)).order))}><span>Order {order.id.slice(0, 8)}<small>{new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · •••• {order.lastFour}</small></span><span>{usd(order.total)}<small>{stateLabel[order.status]}</small></span></button></li>)}</ul></section>}
-      <footer className={styles.footer}><Link className={styles.brand} href="/shop">leash<span>supply</span></Link><p>Illustrative products. Provider-recorded sandbox payments.<br />Lithic simulates merchant authorization and clearing; no merchant bank receives funds. This is not a Stripe/Razorpay test checkout.</p><Link href="/gifts">Back to your gifts ↗</Link></footer>
+      <footer className={styles.footer}><Link className={styles.brand} href="/shop">Shagun<span>shop</span></Link><p>Illustrative products. Provider-recorded sandbox payments.<br />Lithic simulates merchant authorization and clearing; no merchant bank receives funds. This is not a Stripe/Razorpay test checkout.</p><Link href="/dashboard">Send a Shagun ↗</Link></footer>
     </main>
   </div>;
 }

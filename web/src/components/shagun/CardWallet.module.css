@@ -1,0 +1,105 @@
+.wallet {
+  margin: 24px 0;
+}
+.wallet h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+.sandbox {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+.body > p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.card {
+  padding: 24px;
+  background: var(--color-purple-00);
+  color: var(--foreground);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  border-radius: 12px;
+}
+.cardTop,
+.cardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cardTop strong {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.number {
+  font-size: clamp(15px, 3.4vw, 21px);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cardBottom {
+  font-size: 11px;
+}
+.balances {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.balances > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.balances dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.frame,
+.monthFrame,
+.yearFrame {
+  height: 30px;
+  min-width: 0;
+}
+.detailRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.expiry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.monthFrame {
+  width: 30px;
+}
+.yearFrame {
+  width: 50px;
+}
+@media (max-width: 400px) {
+  .wallet > :first-child {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card {
+    padding: 20px;
+  }
+}

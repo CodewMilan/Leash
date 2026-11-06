@@ -27,7 +27,7 @@ Run `pnpm worker` in a second terminal after configuring and deploying the vault
 
 1. **Privy:** create an app, allow the local and deployed origins, enable the configured email/Google login methods and embedded Ethereum wallets. Set `NEXT_PUBLIC_PRIVY_APP_ID`. Prove EIP-712 signing on custom chain 1874 using the target phone.
 2. **Whitechain:** generate separate relayer and attester keys in your secret manager. Give the relayer faucet WBT; give sender accounts official test USDT. Set treasury and admin addresses. Run `pnpm chain:check` and `pnpm contracts:build`, then explicitly run `pnpm contracts:deploy -- --confirm-testnet`. Verify source using the generated standard JSON input, and set `VAULT_ADDRESS` and `VAULT_DEPLOY_BLOCK` from the real receipt. Keep admin signing authority separate from the app.
-3. **World:** create a v4 app/RP and configure `shagun-human`. Set app/RP/signing variables and `WORLD_ENVIRONMENT`. Staging proofs are development-only. Validate real repeated-human campaign behavior before claiming the integration works.
+3. **Recipient claims:** use passkeys and private gift-link secrets. World ID is removed; campaigns are limited per passkey, not per unique person.
 4. **RazorpayX:** use test keys, test account identifier, a funded test balance, and the worker's allowlisted outbound IP. Register `/api/webhooks/razorpay` with its own webhook signing secret and payout lifecycle events. Live keys are rejected by this code.
 
 An indicative rate is snapshotted per gift. Updating `PAYOUT_INR_PER_USDT` affects new gifts only. USDT math uses integer micro-units; INR uses integer paise. Do not introduce floating-point conversion in APIs or workers.

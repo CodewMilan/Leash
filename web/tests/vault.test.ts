@@ -195,7 +195,7 @@ describe("ShagunVault value-moving rules", () => {
     ).rejects.toThrow();
     expect((await vault.gifts(p.nonce)).state).toBe(1n);
   });
-  it("allows only one campaign gift per human while ordinary gifts remain repeatable", async () => {
+  it("allows only one campaign gift per recipient commitment while ordinary gifts remain repeatable", async () => {
     const campaign = random(),
       human = random();
     const a = await create(campaign),

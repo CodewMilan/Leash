@@ -21,8 +21,8 @@ export function decrypt<T>(value: string): T {
   decipher.setAuthTag(tag);
   return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8"));
 }
-export function humanCommitment(nullifier: string) {
+export function recipientCommitment(credentialId: string) {
   return `0x${createHmac("sha256", key())
-    .update(`shagun-human:${BigInt(nullifier).toString()}`)
+    .update(`shagun-recipient-passkey:v1:${credentialId}`)
     .digest("hex")}`;
 }

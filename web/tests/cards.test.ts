@@ -6,6 +6,7 @@ import { handleApi } from "../src/lib/server/api";
 import { setTestDatabase, sql } from "../src/lib/server/db";
 import { PHASE0_PURPOSE } from "../src/lib/server/cards/webhooks";
 
+const phase0Token = randomUUID();
 const asaSecret = `whsec_${randomBytes(24).toString("base64")}`;
 const eventsSecret = `whsec_${randomBytes(24).toString("base64")}`;
 
@@ -23,7 +24,7 @@ function asaRequest(
       merchant: { amount, currency: overrides.currency ?? "USD" },
     },
     card: {
-      token: randomUUID(),
+      token: phase0Token,
       last_four: "4142",
       memo: "Shagun Phase 0 sandbox",
       spend_limit: 2_500,
@@ -69,6 +70,7 @@ describe("Lithic sandbox webhooks", () => {
   beforeAll(async () => {
     vi.stubEnv("APP_URL", "http://localhost:3000");
     vi.stubEnv("LITHIC_ASA_SECRET", asaSecret);
+    vi.stubEnv("LITHIC_PHASE0_CARD_TOKEN", phase0Token);
     vi.stubEnv("LITHIC_EVENTS_SECRET", eventsSecret);
     db = new PGlite();
     for (const migration of migrations) await db.exec(migration.sql);
@@ -150,11 +152,23 @@ describe("Lithic sandbox webhooks", () => {
   it("records each event once", async () => {
     const event = {
       event_type: "card_transaction.updated",
-      payload: { token: randomUUID(), status: "PENDING" },
+      payload: {
+        token: randomUUID(),
+        status: "PENDING",
+        pan: "must-not-persist",
+        cvv: "must-not-persist",
+      },
     };
     const options = { id: "msg_lifecycle" };
     expect((await signed("webhooks/lithic/events", event, eventsSecret, options)).status).toBe(200);
     expect((await signed("webhooks/lithic/events", event, eventsSecret, options)).status).toBe(200);
     expect(await sql("SELECT id FROM webhook_events")).toEqual([{ id: "lithic:msg_lifecycle" }]);
+    const queued = await sql("SELECT id,transaction_token,status FROM card_events");
+    expect(queued).toEqual([
+      { id: "lithic:msg_lifecycle", transaction_token: event.payload.token, status: "queued" },
+    ]);
+    expect(JSON.stringify(await sql("SELECT * FROM card_events"))).not.toContain(
+      "must-not-persist",
+    );
   });
 });

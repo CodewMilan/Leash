@@ -8,10 +8,10 @@ import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/browser";
-import { IDKitRequestWidget, proofOfHuman, type IDKitRequestConfig } from "@worldcoin/idkit";
 import { api } from "@/lib/client-api";
-import { inr, tokenAmount } from "@/lib/amounts";
+import { tokenAmount } from "@/lib/amounts";
 import type { GiftView } from "@/lib/types";
+import { CardWallet } from "./CardWallet";
 import { AppEnvelope } from "./AppEnvelope";
 import { ReceiptTimeline, StatusBadge, TestBanner } from "./Shared";
 
@@ -22,13 +22,6 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [device, setDevice] = useState(false);
-  const [name, setName] = useState("");
-  const [upi, setUpi] = useState("");
-  const [world, setWorld] = useState<{
-    challengeId: string;
-    config: IDKitRequestConfig & { signal: string };
-  } | null>(null);
-  const [worldOpen, setWorldOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const refresh = useCallback(async () => {
     try {
@@ -71,28 +64,25 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
             });
       await api("auth/passkey/verify", { mode, challengeId: options.challengeId, response });
       setDevice(true);
+      return true;
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Your device could not be confirmed. Please try again.",
       );
+      return false;
     } finally {
       setBusy("");
     }
   }
-  async function startWorld(event: FormEvent) {
+  async function claim(event: FormEvent) {
     event.preventDefault();
-    setBusy("Preparing your verification…");
+    setBusy("Claiming your gift…");
     setError("");
     try {
       if (!secret) throw new Error("Open the original gift link. Its envelope key is missing.");
-      const config = await api<{
-        challengeId: string;
-        config: IDKitRequestConfig & { signal: string };
-      }>(`gifts/${giftId}/world`, {});
-      setWorld(config);
-      setWorldOpen(true);
+      setGift(await api<GiftView>(`gifts/${giftId}/claim`, { secret }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "World verification is unavailable.");
+      setError(e instanceof Error ? e.message : "Your gift could not be claimed. Try again.");
     } finally {
       setBusy("");
     }
@@ -130,7 +120,7 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
               {receipt
                 ? "Your gift&apos;s verifiable journey."
                 : gift?.status === "returned"
-                  ? "The unclaimed gift has been returned to its sender."
+                  ? "The remaining gift value has been returned to its sender."
                   : expired && gift?.status === "sent"
                     ? "Its return transaction will appear once confirmed."
                     : "Someone, somewhere, is thinking of you."}
@@ -143,7 +133,7 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
               </div>
               <div className="claim-amount">${tokenAmount(gift.amount)}</div>
               <p className="text-center microcopy mb-6">
-                {inr(gift.paise)} indicative UPI test payout
+                A virtual card with a spending budget matching your gift
               </p>
               <TestBanner />
               {(gift.status === "pending" || gift.claimPending) && (
@@ -201,58 +191,24 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
                     <li>
                       <span className="step-number">02</span>
                       <div className="step-content">
-                        <h2>A human moment.</h2>
+                        <h2>Open your gift.</h2>
                         <p>
-                          Enter your UPI details, then prove you&apos;re human with World.{" "}
+                          Your gift link and confirmed passkey protect your claim.{" "}
                           {gift.campaign
-                            ? "This campaign allows one gift per human."
-                            : "This envelope goes to its first verified claimant."}
+                            ? "This campaign allows one gift per passkey."
+                            : "This envelope goes to the first person who claims it with its original link."}
                         </p>
-                        <form className="form-stack" onSubmit={startWorld}>
-                          <div>
-                            <label className="field-label" htmlFor="recipient-name">
-                              YOUR NAME
-                            </label>
-                            <input
-                              className="field-input"
-                              id="recipient-name"
-                              autoComplete="name"
-                              value={name}
-                              onChange={(e) => setName(e.target.value)}
-                              required
-                              minLength={2}
-                              maxLength={80}
-                              disabled={!device}
-                            />
-                          </div>
-                          <div>
-                            <label className="field-label" htmlFor="upi">
-                              YOUR UPI ID
-                            </label>
-                            <input
-                              className="field-input"
-                              id="upi"
-                              autoCapitalize="none"
-                              autoCorrect="off"
-                              spellCheck={false}
-                              autoComplete="off"
-                              placeholder="yourname@bank"
-                              value={upi}
-                              onChange={(e) => setUpi(e.target.value)}
-                              required
-                              pattern="[a-zA-Z0-9._\-]{2,128}@[a-zA-Z0-9.\-]{2,64}"
-                              disabled={!device}
-                            />
-                          </div>
+                        <form className="form-stack" onSubmit={claim}>
                           <button
                             type="submit"
                             className="button primary full"
                             disabled={!device || !!busy || !secret}
                           >
-                            Verify & claim gift <ArrowUpRight size={18} />
+                            Claim gift <ArrowUpRight size={18} />
                           </button>
                           <p className="microcopy">
-                            RazorpayX test mode. No actual rupees will be sent to this UPI ID.
+                            Lithic sandbox. After your claim confirms, your gift becomes a virtual
+                            card for simulated purchases.
                           </p>
                         </form>
                       </div>
@@ -266,6 +222,21 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
                   )}
                 </>
               )}
+              {!receipt &&
+                !gift.payoutId &&
+                !gift.payoutStatus &&
+                (gift.claimPending || ["claimed", "settled", "returned"].includes(gift.status)) && (
+                  <CardWallet
+                    giftId={giftId}
+                    onAuthenticate={async () => {
+                      if (!(await confirmDevice("login")))
+                        throw new Error(
+                          "Your passkey could not be confirmed. Try opening your card again.",
+                        );
+                      await refresh();
+                    }}
+                  />
+                )}
               {gift.canViewReceipt && (receipt || gift.status !== "sent" || gift.claimPending) && (
                 <div className="panel panel-body">
                   <ReceiptTimeline gift={gift} />
@@ -292,39 +263,6 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
       <Link href="/dashboard" className="text-link mt-8">
         Send some good wishes yourself <ArrowUpRight size={16} />
       </Link>
-      {world && (
-        <IDKitRequestWidget
-          key={world.challengeId}
-          {...world.config}
-          preset={proofOfHuman({ signal: world.config.signal })}
-          allow_legacy_proofs={false}
-          open={worldOpen}
-          onOpenChange={setWorldOpen}
-          handleVerify={async (proof) => {
-            setBusy("Confirming your claim on Whitechain…");
-            try {
-              const updated = await api<GiftView>(`gifts/${giftId}/claim`, {
-                challengeId: world.challengeId,
-                proof,
-                secret,
-                name,
-                upi,
-              });
-              setGift(updated);
-            } finally {
-              setBusy("");
-            }
-          }}
-          onSuccess={() => {
-            setWorldOpen(false);
-            void refresh();
-          }}
-          onError={() => {
-            setError("World verification could not complete. Please try again.");
-            setWorldOpen(false);
-          }}
-        />
-      )}
     </main>
   );
 }

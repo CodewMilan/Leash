@@ -40,14 +40,14 @@ const CASES = [
     caption: "One tap on the envelope, one fingerprint, no gas popup. The card shows up in the browser, next to the explorer link.",
     bg: "#ff942e",
     stickers: ["No gas", "NFC tap", "Receipt", "Sandbox"],
-    ticket: { tag: "Claimed", amount: "$51", line: "Passkey ✓ · World ID ✓", foot: "Whitechain tx linked" },
+    ticket: { tag: "Claimed", amount: "$51", line: "Passkey ✓ · Gift link ✓", foot: "Whitechain tx linked" },
   },
   {
     title: "A forwarded link",
-    caption: "Once someone has claimed it, a different person fails World ID and nothing moves. Before the first claim, the link is a bearer link.",
+    caption: "Once a gift is claimed, card access requires the original passkey. Before the first claim, anyone with the private link can claim it.",
     bg: "#ffc0c0",
-    stickers: ["Denied", "Stays put", "One human", "Not magic"],
-    ticket: { tag: "Denied", amount: "$25", line: "Different human", foot: "Nothing moved" },
+    stickers: ["Denied", "Stays put", "Passkey", "Not magic"],
+    ticket: { tag: "Denied", amount: "$25", line: "Different passkey", foot: "Nothing moved" },
   },
   {
     title: "An expired gift",
@@ -57,23 +57,23 @@ const CASES = [
     ticket: { tag: "Returned", amount: "$17", line: "$8 spent · $17 back", foot: "To the sender" },
   },
   {
-    title: "One per person",
-    caption: "A company drop can be claimed once per verified human. A second claim from the same person is refused.",
+    title: "One per passkey",
+    caption: "A company drop allows one gift per passkey. This limits repeat claims with that passkey; it does not verify a unique person.",
     bg: "#a199ff",
-    stickers: ["Campaign", "One human", "No bots", "One each"],
-    ticket: { tag: "Refused", amount: "$101", line: "Second claim, same human", foot: "One per person" },
+    stickers: ["Campaign", "Passkey", "Same key", "One each"],
+    ticket: { tag: "Refused", amount: "$101", line: "Second claim, same passkey", foot: "One per passkey" },
   },
 ];
 const STEPS = [
   ["Name the gift", "Amount, a note, and when it expires. You sign once in MetaMask; Shagun pays the gas."],
-  ["They open the envelope", "A tap or a link. A passkey confirms their phone, and World ID confirms a real person."],
+  ["They open the envelope", "A tap or a private link. They confirm with a passkey, then claim the gift on their phone."],
   ["They get a card", "A Lithic sandbox virtual card with the gift as its limit. Purchases are simulated; no real money moves."],
   ["The rest comes back", "When the gift expires, the card closes and the unspent USDT returns to you. An unclaimed gift returns in full."],
 ];
 const STICKERS = ["#ff942e", "#a199ff", "#36d972", "#ffc0c0", "#f955b2", "#ffbfec"];
 const NODES = [
   { id: "sender", label: "Sender", note: "signs once, pays no gas", x: 16, y: 22, bg: "#ffbfec" },
-  { id: "world", label: "World ID", note: "one verified human", x: 84, y: 22, bg: "#f955b2" },
+  { id: "passkey", label: "Passkey", note: "protects the gift claim", x: 84, y: 22, bg: "#f955b2" },
   { id: "vault", label: "Vault", note: "holds the USDT", x: 16, y: 80, bg: "#36d972" },
   { id: "card", label: "Virtual card", note: "Lithic sandbox", x: 84, y: 80, bg: "#ff942e" },
 ];
@@ -171,7 +171,7 @@ function StepVisual({ step, amount }: { step: number; amount: number }) {
         <p className="font-mono text-[11px] tracking-[0.08em] text-grey-04 uppercase">Opening the envelope</p>
         <div className="mt-3">
           <Check label="Passkey" note="This phone, confirmed" />
-          <Check label="World ID" note="One verified human" />
+          <Check label="Gift link" note="The private envelope key" />
           <Check label="Claim" note="Recorded on Whitechain" />
         </div>
       </div>
@@ -386,7 +386,7 @@ export function Home() {
             </span>
           </h1>
           <p className="hero-follow max-w-[640px] text-center text-[18px] leading-snug lg:text-[22px]">
-            You send dollars without paying gas. One verified person opens it on their phone and gets a virtual card. Whatever they don&apos;t spend comes back to you.
+            You send dollars without paying gas. The recipient opens it with a passkey on their phone and gets a virtual card. Whatever they don&apos;t spend comes back to you.
           </p>
           <div className="hero-follow w-full max-w-[920px]">
             <form className="grid grid-cols-[1fr_88px] lg:grid-cols-[1fr_206px]" onSubmit={(event) => { event.preventDefault(); submit(); }}>
@@ -503,8 +503,8 @@ export function Home() {
 
         <div className="overflow-hidden border-y border-grey-02 py-4">
           <div ref={bandRef} className="flex w-[200%] font-mono text-[12px] tracking-[0.16em] whitespace-nowrap uppercase">
-            <span className="w-1/2">Envelope · Passkey · World ID · Virtual card · Comes back · No gas · One human ·&nbsp;</span>
-            <span className="w-1/2" aria-hidden="true">Envelope · Passkey · World ID · Virtual card · Comes back · No gas · One human ·&nbsp;</span>
+            <span className="w-1/2">Envelope · Passkey · Private link · Virtual card · Comes back · No gas · One claim ·&nbsp;</span>
+            <span className="w-1/2" aria-hidden="true">Envelope · Passkey · Private link · Virtual card · Comes back · No gas · One claim ·&nbsp;</span>
           </div>
         </div>
         <Hood />
@@ -513,7 +513,7 @@ export function Home() {
           <p className="tag">Receipts</p>
           <h2 className="hero-title mt-4 max-w-[14ch] text-[clamp(36px,5vw,64px)]">A record for every step that moves money</h2>
           <div className="mt-10 grid gap-px bg-grey-02 sm:grid-cols-3">
-            {[["0", "gas from the sender", "The relayer pays the network fee."], ["1", "verified human per gift", "World ID proves a person. No name is stored."], ["$0", "real money", "Test USDT and a Lithic sandbox card. Purchases are simulated."]].map(([figure, title, body]) => (
+            {[["0", "gas from the sender", "The relayer pays the network fee."], ["1", "claim per gift", "A passkey and the private gift link protect each claim."], ["$0", "real money", "Test USDT and a Lithic sandbox card. Purchases are simulated."]].map(([figure, title, body]) => (
               <article key={title} data-receipt-card className="bg-white-00 p-6">
                 <p data-receipt-float className="text-[56px] leading-none tracking-[-0.05em]">{figure}</p>
                 <h3 className="mt-4 text-[22px] tracking-[-0.03em]">{title}</h3>
@@ -540,7 +540,7 @@ export function Home() {
           <p className="tag">Limits</p>
           <h2 className="hero-title mt-4 max-w-[16ch] text-[clamp(32px,4vw,50px)]">What this demo will and will not claim</h2>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {[["On the chain, real", "The gift, the claim and the return are Whitechain testnet transactions in official test USDT."], ["The card, a sandbox", "The Lithic card is genuine but sandboxed. It is not on a card network; purchases are simulated."], ["Not scam-proof", "An unregistered envelope goes to the first verified person who claims it. After that, only they can use it."]].map(([title, body]) => (
+            {[["On the chain, real", "The gift, the claim and the return are Whitechain testnet transactions in official test USDT."], ["The card, a sandbox", "The Lithic card is genuine but sandboxed. It is not on a card network; purchases are simulated."], ["Not scam-proof", "Anyone with an unclaimed gift’s private link can claim it with a passkey. After that, card access requires the original passkey."]].map(([title, body]) => (
               <article key={title} data-limit-card className="border border-grey-02 p-5">
                 <h3 className="text-[24px] tracking-[-0.03em]">{title}</h3>
                 <p className="mt-3 text-[15px] leading-relaxed text-grey-04">{body}</p>
@@ -564,7 +564,7 @@ export function Home() {
           <div className="grid gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
             <p className="max-w-[16rem] text-[15px] leading-relaxed text-grey-04">A Diwali gift in dollars that arrives as a card. Built for ETHGlobal Mumbai.</p>
             <nav aria-label="The gift" className="flex flex-col gap-2"><p className="font-mono text-[12px] tracking-[0.08em] uppercase">The gift</p><FlipLink href="/dashboard" label="Send a gift" className="self-start" /><FlipLink href="/#how" label="How it moves" className="self-start" /></nav>
-            <nav aria-label="Partners" className="flex flex-col gap-2"><p className="font-mono text-[12px] tracking-[0.08em] uppercase">Partners</p><FlipLink href="https://whitechain.io" label="Whitechain" className="self-start" /><FlipLink href="https://world.org/world-id" label="World ID" className="self-start" /><FlipLink href="https://www.lithic.com" label="Lithic" className="self-start" /></nav>
+            <nav aria-label="Partners" className="flex flex-col gap-2"><p className="font-mono text-[12px] tracking-[0.08em] uppercase">Partners</p><FlipLink href="https://whitechain.io" label="Whitechain" className="self-start" /><FlipLink href="https://www.lithic.com" label="Lithic" className="self-start" /></nav>
             <p className="font-mono text-[11px] tracking-[0.08em] text-grey-04 uppercase">Whitechain testnet · Lithic sandbox · No real money</p>
           </div>
         </footer>

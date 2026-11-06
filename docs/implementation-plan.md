@@ -1,3 +1,5 @@
+> Current identity decision (Nov 6): World ID is removed. Replace historical World-proof steps below with a fresh passkey session and the private gift-link secret. Campaign limits are per passkey, not per person. See `docs/context.md` and current implementation.
+
 **Shagun implementation plan**
 
 Prepared November 6, 2026 from [context.md](./context.md) and the current repository. This is a proposed build plan, not a claim that integrations have been implemented or deployments verified.

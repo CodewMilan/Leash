@@ -1,3 +1,5 @@
+> Current identity decision (Nov 6): World ID is removed. Replace historical World-proof steps below with a fresh passkey session and the private gift-link secret. Campaign limits are per passkey, not per person. See `docs/context.md` and current implementation.
+
 # Shagun architecture
 
 Start here when joining the project. [context.md](./context.md) describes the product; this document describes the implemented boundaries. The [release checklist](./operations.md) records what still prevents a production launch.

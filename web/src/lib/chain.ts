@@ -27,6 +27,8 @@ export const authorizationTypes = {
     { name: "nonce", type: "bytes32" },
   ],
 };
+// Legacy ABI field `human` carries the server-derived passkey recipient commitment.
+// It does not represent World ID or a proof of person uniqueness.
 export const claimTypes = {
   Claim: [
     { name: "giftId", type: "bytes32" },

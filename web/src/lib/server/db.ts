@@ -9,7 +9,7 @@ export function pool() {
   return (globalDb.shagunPool ??= new Pool({
     connectionString: required("DATABASE_URL"),
     max: 8,
-    connectionTimeoutMillis: 8_000,
+    connectionTimeoutMillis: 1_500,
     application_name: "shagun",
   }));
 }
@@ -49,5 +49,46 @@ export async function withWorkerLock<T>(
   } finally {
     client.off("error", onError);
     client.release(disconnected);
+  }
+}
+
+// Keep every read/lock/write in a card decision on the same database connection.
+let testTransactionTail: Promise<void> = Promise.resolve();
+export async function withTransaction<T>(fn: (db: Database) => Promise<T>): Promise<T> {
+  const test = globalDb.shagunTestDb;
+  if (test) {
+    const previous = testTransactionTail;
+    let release!: () => void;
+    testTransactionTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      await test.query("BEGIN");
+      try {
+        const result = await fn(test);
+        await test.query("COMMIT");
+        return result;
+      } catch (error) {
+        await test.query("ROLLBACK");
+        throw error;
+      }
+    } finally {
+      release();
+    }
+  }
+  const client = await pool().connect();
+  try {
+    await client.query("BEGIN");
+    try {
+      const result = await fn(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  } finally {
+    client.release();
   }
 }

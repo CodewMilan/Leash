@@ -2,13 +2,11 @@ import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from "vites
 import { PGlite } from "@electric-sql/pglite";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { Wallet, ZeroHash, hexlify, keccak256 } from "ethers";
-import { hashSignal } from "@worldcoin/idkit-core/hashing";
 import { migrations } from "../../db/migrations";
 import { handleApi } from "../src/lib/server/api";
 import { setTestDatabase, sql } from "../src/lib/server/db";
 import { encrypt, sha256 } from "../src/lib/server/security/crypto";
 import { executePayout, recordPayoutStatus } from "../src/lib/server/payouts/razorpay";
-import { verifyWorld, worldRequest, type WorldRequest } from "../src/lib/server/world/verification";
 import { authorizationTypes, giftNonce, TOKEN_DOMAIN, type GiftTerms } from "../src/lib/chain";
 import { openMessage, sealMessage } from "../src/lib/giftMessage";
 
@@ -20,10 +18,6 @@ describe("API authorization, concurrency and payout durability", () => {
   beforeAll(async () => {
     vi.stubEnv("APP_URL", "http://localhost:3000");
     vi.stubEnv("DATA_ENCRYPTION_KEY", randomBytes(32).toString("hex"));
-    vi.stubEnv("WORLD_SIGNING_KEY", random());
-    vi.stubEnv("WORLD_APP_ID", "app_test");
-    vi.stubEnv("WORLD_RP_ID", "rp_test");
-    vi.stubEnv("WORLD_ENVIRONMENT", "staging");
     vi.stubEnv("VAULT_ADDRESS", vault);
     vi.stubEnv("RELAYER_PRIVATE_KEY", Wallet.createRandom().privateKey);
     vi.stubEnv("ATTESTER_PRIVATE_KEY", Wallet.createRandom().privateKey);
@@ -112,23 +106,6 @@ describe("API authorization, concurrency and payout durability", () => {
       ],
     );
     return { id, secret };
-  }
-  function proof(config: WorldRequest, nullifier = "0x1234") {
-    return {
-      protocol_version: "4.0",
-      nonce: config.rp_context.nonce,
-      action: config.action,
-      environment: config.environment,
-      responses: [
-        {
-          identifier: "proof_of_human",
-          signal_hash: hashSignal(config.signal),
-          nullifier,
-          issuer_schema_id: 1,
-          proof: ["test-only"],
-        },
-      ],
-    };
   }
   it("rejects cross-origin mutations and exposes no secret values in status", async () => {
     const response = await request("session", {}, undefined, {
@@ -260,20 +237,38 @@ describe("API authorization, concurrency and payout durability", () => {
     expect(defaulted.design).toBe("diwali");
     expect(defaulted.sealedMessage).toBeNull();
   });
-  it("rejects wrong World action, signal, environment and credential before external verification", async () => {
-    const config = worldRequest("test-gift-session");
+  it("requires a fresh passkey and the private gift secret without World verification", async () => {
+    const gift = await seedGift();
+    const unverified = await newSession();
+    expect(
+      (await request(`gifts/${gift.id}/claim`, { secret: gift.secret }, unverified.cookie)).status,
+    ).toBe(401);
+    const verified = await newSession(true);
+    expect(
+      (await request(`gifts/${gift.id}/claim`, { secret: random() }, verified.cookie)).status,
+    ).toBe(403);
+    await sql("UPDATE sessions SET authenticated_at=now()-interval '11 minutes' WHERE id=$1", [
+      verified.id,
+    ]);
+    expect(
+      (await request(`gifts/${gift.id}/claim`, { secret: gift.secret }, verified.cookie)).status,
+    ).toBe(401);
+    await sql("UPDATE sessions SET authenticated_at=now() WHERE id=$1", [verified.id]);
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    for (const invalid of [
-      { ...proof(config), action: "different" },
-      { ...proof(config), environment: "production" },
-      { ...proof(config), responses: [{ ...proof(config).responses[0], signal_hash: "0x00" }] },
-      { ...proof(config), responses: [{ ...proof(config).responses[0], identifier: "selfie" }] },
-    ])
-      await expect(verifyWorld(invalid, config)).rejects.toThrow();
+    expect(
+      (await request(`gifts/${gift.id}/claim`, { secret: gift.secret }, verified.cookie)).status,
+    ).toBe(202);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      (await request(`gifts/${gift.id}/claim`, { secret: gift.secret }, verified.cookie)).status,
+    ).toBe(202);
+    expect(
+      (await sql("SELECT id FROM jobs WHERE gift_id=$1 AND kind='claim'", [gift.id])).length,
+    ).toBe(1);
+    expect((await request(`gifts/${gift.id}/world`, {}, verified.cookie)).status).toBe(410);
   });
-  it("allows exactly one concurrent campaign claim and preserves privacy for another session", async () => {
+  it("claims one campaign gift as a card without creating a UPI payout", async () => {
     const a = await seedGift(random()),
       b = await seedGift(
         (await sql<{ campaign_id: string }>("SELECT campaign_id FROM gifts WHERE id=$1", [a.id]))[0]
@@ -281,23 +276,11 @@ describe("API authorization, concurrency and payout durability", () => {
       );
     const s1 = await newSession(true),
       s2 = await newSession(true);
-    const w1 = await (await request(`gifts/${a.id}/world`, {}, s1.cookie)).json();
-    const w2 = await (await request(`gifts/${b.id}/world`, {}, s2.cookie)).json();
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockImplementation(async () => Response.json({ success: true, environment: "staging" })),
-    );
     const result = await Promise.all([
       request(
         `gifts/${a.id}/claim`,
         {
           secret: a.secret,
-          challengeId: w1.challengeId,
-          proof: proof(w1.config),
-          name: "Test Person",
-          upi: "test@bank",
         },
         s1.cookie,
       ),
@@ -305,10 +288,6 @@ describe("API authorization, concurrency and payout durability", () => {
         `gifts/${b.id}/claim`,
         {
           secret: b.secret,
-          challengeId: w2.challengeId,
-          proof: proof(w2.config),
-          name: "Test Person",
-          upi: "test@bank",
         },
         s2.cookie,
       ),
@@ -321,7 +300,7 @@ describe("API authorization, concurrency and payout durability", () => {
     ).toBe(1);
     expect(
       (await sql<{ count: number }>("SELECT count(*)::int AS count FROM payouts"))[0].count,
-    ).toBe(1);
+    ).toBe(0);
     const viewer = await newSession();
     const view = await (await request(`gifts/${a.id}`, undefined, viewer.cookie)).json();
     expect(view.canViewReceipt).toBe(false);

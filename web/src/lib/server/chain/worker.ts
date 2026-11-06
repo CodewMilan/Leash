@@ -8,17 +8,20 @@ import {
   parseEther,
 } from "ethers";
 import { randomUUID } from "node:crypto";
-import { claimTypes, vaultAbi, type GiftTerms } from "../../chain";
+import { claimTypes, vaultAbi, ZeroHash, type GiftTerms } from "../../chain";
 import { AppError, officialToken, required, rpcUrl, vaultAddress, integerSetting } from "../config";
 import { decrypt, encrypt, randomId, sha256 } from "../security/crypto";
 import { sql, withWorkerLock } from "../db";
+import { issueGiftCard } from "../cards/issuance";
+import { processCardEvents, reconcileCardTransactions } from "../cards/ledger";
+import { lithic } from "../cards/lithic";
 import { executePayout } from "../payouts/razorpay";
 import type { GiftRow } from "../gifts/repository";
 
 type Job = {
   id: string;
   gift_id: string;
-  kind: "create" | "claim" | "settle" | "refund";
+  kind: "create" | "claim" | "settle" | "refund" | "close_card" | `spend:${string}`;
   payload: string;
   raw_tx: string | null;
   tx_hash: string | null;
@@ -75,29 +78,83 @@ async function prepareCall(job: Job) {
       signature,
     ]);
   }
-  if (job.kind === "settle")
+  if (job.kind.startsWith("spend:")) {
+    const p = decrypt<{ amount: string; spendRef: string }>(job.payload);
+    return iface.encodeFunctionData("spend", [job.gift_id, p.amount, p.spendRef]);
+  }
+  if (job.kind === "close_card") {
+    const [card] = await sql<{
+      status: string;
+      card_token: string | null;
+      request_started: boolean;
+      reserved_cents: string;
+    }>("SELECT status,card_token,request_started,reserved_cents FROM gift_cards WHERE gift_id=$1", [
+      job.gift_id,
+    ]);
+    if (!card || card.status !== "closing" || BigInt(card.reserved_cents) !== 0n)
+      throw new AppError("Card return is pending reconciliation.", 503);
+    if (card.card_token ? !(await reconcileCardTransactions(job.gift_id)) : card.request_started)
+      throw new AppError("Card return is pending reconciliation.", 503);
+    return iface.encodeFunctionData("closeClaimed", [job.gift_id]);
+  }
+  if (job.kind === "settle") {
+    const [gift] = await sql<{ redemption: string | null }>(
+      "SELECT redemption FROM gifts WHERE id=$1",
+      [job.gift_id],
+    );
+    if (gift?.redemption === "card")
+      throw new AppError("Card gifts cannot use whole-gift cash-out.");
     return iface.encodeFunctionData("cashOut", [
       job.gift_id,
       `0x${sha256(`payout:${job.gift_id}`)}`,
     ]);
+  }
   if (job.kind === "refund") return iface.encodeFunctionData("refundExpired", [job.gift_id]);
   throw new AppError("Operation is not allowlisted.");
 }
 async function finishJob(job: Job, txHash: string) {
+  if (job.kind.startsWith("spend:")) {
+    await sql(
+      `WITH gift AS (
+      UPDATE gifts g SET status='claimed',
+      settlement_tx=$2,error=NULL FROM gift_cards c WHERE g.id=$1 AND c.gift_id=g.id RETURNING g.id)
+      UPDATE jobs SET status='done',error=NULL WHERE id=$3 AND EXISTS(SELECT 1 FROM gift)`,
+      [job.gift_id, txHash, job.id],
+    );
+    return;
+  }
+  if (job.kind === "close_card") {
+    await sql("UPDATE gift_cards SET status='closed',updated_at=now() WHERE gift_id=$1", [
+      job.gift_id,
+    ]);
+    await sql("UPDATE gifts SET status='returned',refund_tx=$2,error=NULL WHERE id=$1", [
+      job.gift_id,
+      txHash,
+    ]);
+    await sql("UPDATE jobs SET status='done',error=NULL WHERE id=$1", [job.id]);
+    return;
+  }
   const columns = {
     create: ["sent", "created_tx"],
     claim: ["claimed", "claim_tx"],
     settle: ["settled", "settlement_tx"],
     refund: ["returned", "refund_tx"],
   } as const;
-  const [status, column] = columns[job.kind];
+  if (!(job.kind in columns)) throw new AppError("Unknown job kind.");
+  const [status, column] = columns[job.kind as keyof typeof columns];
   // Only constant allowlisted identifiers enter this statement.
   await sql(
     `WITH gift AS (UPDATE gifts SET status=$2,${column}=$3,error=NULL WHERE id=$1 RETURNING id)
     UPDATE jobs SET status='done',error=NULL WHERE id=$4 AND EXISTS(SELECT 1 FROM gift)`,
     [job.gift_id, status, txHash, job.id],
   );
-  if (job.kind === "claim") await enqueue(job.gift_id, "settle");
+  if (job.kind === "claim") {
+    const [gift] = await sql<{ redemption: string | null }>(
+      "SELECT redemption FROM gifts WHERE id=$1",
+      [job.gift_id],
+    );
+    if (gift?.redemption !== "card") await enqueue(job.gift_id, "settle");
+  }
 }
 async function processJob(
   job: Job,
@@ -191,10 +248,22 @@ async function processJob(
   const operation = iface.parseTransaction({ data: tx.data });
   if (
     !operation ||
-    !["createGiftWithAuthorization", "claim", "cashOut", "refundExpired"].includes(operation.name)
+    ![
+      "createGiftWithAuthorization",
+      "claim",
+      "cashOut",
+      "refundExpired",
+      "spend",
+      "closeClaimed",
+    ].includes(operation.name)
   )
     throw new AppError("Receipt operation is not allowlisted.");
   await finishJob(job, hash);
+  if (job.kind.startsWith("spend:")) {
+    const onchain = await new Contract(vaultAddress(), vaultAbi, provider).gifts(job.gift_id);
+    if (states[Number(onchain.state)] === "settled")
+      await sql("UPDATE gifts SET status='settled' WHERE id=$1", [job.gift_id]);
+  }
 }
 async function failJob(job: Job, error: unknown) {
   const terminal = error instanceof AppError && error.status !== 503;
@@ -238,6 +307,12 @@ export async function workerTick() {
       ) {
         throw new AppError("Vault token or role configuration did not match.");
       }
+      // Fail before processing claims or issuing cards against a legacy whole-gift vault.
+      // The current ABI must decode the tracked spent field and expose replay protection.
+      await contract.usedSpendRefs(ZeroHash);
+      const capability = await contract.gifts(ZeroHash);
+      if (typeof capability.spent !== "bigint")
+        throw new AppError("This vault does not support card settlement.", 503);
       const expired = await sql<GiftRow>(
         "SELECT * FROM gifts WHERE status='sent' AND expiry<=$1 AND claim_session IS NULL LIMIT 100",
         [Math.floor(Date.now() / 1000)],
@@ -245,9 +320,76 @@ export async function workerTick() {
       for (const gift of expired) await enqueue(gift.id, "refund");
       // Repair a restart between confirmed claim persistence and settlement job creation.
       const claimed = await sql<{ id: string }>(
-        "SELECT id FROM gifts WHERE status='claimed' LIMIT 100",
+        "SELECT id FROM gifts WHERE status='claimed' AND redemption IS DISTINCT FROM 'card' LIMIT 100",
       );
       for (const gift of claimed) await enqueue(gift.id, "settle");
+      await processCardEvents();
+      const cardsToIssue = await sql<{
+        id: string;
+      }>(`SELECT g.id FROM gifts g LEFT JOIN gift_cards c ON c.gift_id=g.id
+        WHERE g.status='claimed' AND g.redemption='card' AND g.claim_tx IS NOT NULL
+        AND (c.gift_id IS NULL OR (c.status='preparing' AND c.next_attempt<=now())) LIMIT 10`);
+      for (const gift of cardsToIssue) {
+        await assertLock();
+        try {
+          await issueGiftCard(gift.id);
+        } catch {
+          await sql(
+            "UPDATE gift_cards SET error='Card preparation is awaiting provider reconciliation.',next_attempt=now()+interval '30 seconds',updated_at=now() WHERE gift_id=$1",
+            [gift.id],
+          );
+        }
+      }
+      const neverIssued = await sql<{ gift_id: string }>(
+        `SELECT c.gift_id FROM gift_cards c JOIN gifts g ON g.id=c.gift_id
+        WHERE c.status='closing' AND c.card_token IS NULL AND c.request_started=false AND g.expiry<=$1`,
+        [Math.floor(Date.now() / 1000)],
+      );
+      for (const card of neverIssued) await enqueue(card.gift_id, "close_card");
+      const expiredCards = await sql<{ gift_id: string; card_token: string }>(
+        `SELECT c.gift_id,c.card_token FROM gift_cards c JOIN gifts g ON g.id=c.gift_id
+        WHERE g.expiry<=$1 AND c.card_token IS NOT NULL AND c.status IN ('ready','closing') LIMIT 10`,
+        [Math.floor(Date.now() / 1000)],
+      );
+      for (const card of expiredCards) {
+        await assertLock();
+        try {
+          await sql(
+            "UPDATE gift_cards SET status='closing',updated_at=now() WHERE gift_id=$1 AND status='ready'",
+            [card.gift_id],
+          );
+          const providerCard = await lithic<{ state: string }>(`cards/${card.card_token}`);
+          if (providerCard.state !== "CLOSED") {
+            if (providerCard.state !== "PAUSED")
+              await lithic(`cards/${card.card_token}`, {
+                method: "PATCH",
+                body: { state: "PAUSED" },
+              });
+            await lithic(`cards/${card.card_token}`, {
+              method: "PATCH",
+              body: { state: "CLOSED" },
+            });
+          }
+          if (await reconcileCardTransactions(card.gift_id)) {
+            const onchain = await contract.gifts(card.gift_id);
+            const [balance] = await sql<{ cleared_cents: string }>(
+              "SELECT cleared_cents FROM gift_cards WHERE gift_id=$1",
+              [card.gift_id],
+            );
+            if (BigInt(onchain.spent) !== BigInt(balance.cleared_cents) * 10_000n) continue;
+            if (states[Number(onchain.state)] === "settled")
+              await sql("UPDATE gift_cards SET status='closed',updated_at=now() WHERE gift_id=$1", [
+                card.gift_id,
+              ]);
+            else await enqueue(card.gift_id, "close_card");
+          }
+        } catch {
+          await sql(
+            "UPDATE gift_cards SET error='Unused funds are pending card and transaction reconciliation.',updated_at=now() WHERE gift_id=$1",
+            [card.gift_id],
+          );
+        }
+      }
       const jobs = await sql<Job>(
         "SELECT * FROM jobs WHERE status IN ('queued','broadcast') AND next_attempt<=now() ORDER BY created_at LIMIT 10",
       );

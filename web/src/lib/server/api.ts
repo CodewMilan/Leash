@@ -10,6 +10,7 @@ import { json, readJson } from "./http/response";
 import { receiveWebhook } from "./payouts/razorpay";
 import { receiveAuthorizationRequest, receiveLithicEvent } from "./cards/webhooks";
 import { phase0Post, readPhase0 } from "./cards/phase0";
+import { cardRead, cardPost } from "./cards/controller";
 import { sql } from "./db";
 
 export async function handleApi(request: Request): Promise<Response> {
@@ -53,7 +54,10 @@ export async function handleApi(request: Request): Promise<Response> {
     }
     const current = await session(request);
     if (request.method === "GET") {
-      const result = (await readResource(path, current)) || (await readPhase0(path));
+      const result =
+        (await readResource(path, current)) ||
+        (await cardRead(path, current)) ||
+        (await readPhase0(path));
       if (result) return result;
     } else if (request.method === "POST") {
       await rateLimit(`request:${current.id}`, 100, 60);
@@ -62,6 +66,7 @@ export async function handleApi(request: Request): Promise<Response> {
         (await authenticate(path, current, data)) ||
         (await createGift(path, current, data)) ||
         (await claimGift(path, current, data)) ||
+        (await cardPost(path, current)) ||
         (await phase0Post(path));
       if (result) return result;
     } else throw new AppError("Method not supported.", 405);

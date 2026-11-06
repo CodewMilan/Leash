@@ -14,6 +14,7 @@ export type GiftRow = {
   campaign_id: string;
   terms: GiftTerms;
   status: GiftStatus;
+  redemption: "card" | "upi" | null;
   claim_session: string | null;
   human: string | null;
   rate: string;
@@ -26,12 +27,16 @@ export type GiftRow = {
   design: string;
   sealed_message: string | null;
   created_at: Date;
+  card_status?: string | null;
+  card_budget?: string | null;
+  card_reserved?: string | null;
+  card_cleared?: string | null;
   payout_id?: string | null;
   payout_status?: string | null;
 };
 export async function getGift(id: string) {
   const [gift] = await sql<GiftRow>(
-    `SELECT g.*,p.payout_id,p.status AS payout_status,COALESCE(g.error,p.error) AS error FROM gifts g LEFT JOIN payouts p ON p.gift_id=g.id WHERE g.id=$1`,
+    `SELECT g.*,p.payout_id,p.status AS payout_status,COALESCE(g.error,p.error) AS error,c.status AS card_status,c.budget_cents AS card_budget,c.reserved_cents AS card_reserved,c.cleared_cents AS card_cleared FROM gifts g LEFT JOIN payouts p ON p.gift_id=g.id LEFT JOIN gift_cards c ON c.gift_id=g.id WHERE g.id=$1`,
     [id],
   );
   if (!gift) throw new AppError("This envelope could not be found. Check your gift link.", 404);
@@ -58,6 +63,15 @@ export function publicGift(g: GiftRow, canViewReceipt: boolean): GiftView {
     error: canViewReceipt ? g.error : null,
     design: g.design,
     sealedMessage: g.sealed_message,
+    cardAccounting:
+      canViewReceipt && g.card_status
+        ? {
+            status: g.card_status,
+            budgetCents: Number(g.card_budget),
+            reservedCents: Number(g.card_reserved),
+            clearedCents: Number(g.card_cleared),
+          }
+        : null,
   };
 }
 export async function canViewGift(gift: GiftRow, current: Session) {

@@ -27,6 +27,7 @@ export async function createGift(
       t.from !== s.sender ||
       BigInt(t.amount) < MIN_GIFT_UNITS ||
       BigInt(t.amount) > MAX_GIFT_UNITS ||
+      BigInt(t.amount) % 10_000n !== 0n ||
       t.expiry <= now + 60 ||
       t.expiry > now + 30 * 86400 ||
       t.boundHuman !== ZeroHash ||
@@ -51,8 +52,8 @@ export async function createGift(
     if (paise < 100n) throw new AppError("Choose a gift worth at least ₹1 at the indicative rate.");
     const payload = encrypt({ terms: t, validAfter, validBefore, signature });
     await sql(
-      `WITH gift AS (INSERT INTO gifts(id,sender,label,amount,expiry,secret_hash,campaign_id,terms,status,rate,paise,design,sealed_message)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,'pending',$9,$10,$13,$14) ON CONFLICT(id) DO NOTHING RETURNING id)
+      `WITH gift AS (INSERT INTO gifts(id,sender,label,amount,expiry,secret_hash,campaign_id,terms,status,rate,paise,design,sealed_message,redemption)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,'pending',$9,$10,$13,$14,'card') ON CONFLICT(id) DO NOTHING RETURNING id)
         INSERT INTO jobs(id,gift_id,kind,payload) SELECT $11,id,'create',$12 FROM gift ON CONFLICT(gift_id,kind) DO NOTHING`,
       [
         id,

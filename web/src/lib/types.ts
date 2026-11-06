@@ -18,6 +18,12 @@ export type GiftView = {
   claimPending: boolean;
   error: string | null;
   design: string;
+  cardAccounting?: {
+    status: string;
+    budgetCents: number;
+    reservedCents: number;
+    clearedCents: number;
+  } | null;
   /** Recipient note sealed with the envelope secret; readable only with the claim link. */
   sealedMessage: string | null;
 };
@@ -27,4 +33,19 @@ export type AppStatus = {
   testMode: true;
   ready: boolean;
   services: { name: string; ready: boolean; detail: string }[];
+};
+
+export type GiftCardView = {
+  settlementPending?: boolean;
+  giftId: string;
+  status: "preparing" | "ready" | "closing" | "closed" | "reconciliation";
+  lastFour: string | null;
+  expMonth: string | null;
+  expYear: string | null;
+  network: string | null;
+  budgetCents: number;
+  reservedCents: number;
+  clearedCents: number;
+  availableCents: number;
+  error: string | null;
 };

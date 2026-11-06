@@ -23,13 +23,19 @@ export class LithicError extends Error {
 
 export async function lithic<T>(
   path: string,
-  init: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {},
+  init: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+    idempotencyKey?: string;
+  } = {},
 ): Promise<T> {
   const response = await fetch(`${LITHIC_SANDBOX_URL}/${path.replace(/^\//, "")}`, {
     method: init.method || (init.body === undefined ? "GET" : "POST"),
+    cache: "no-store",
     headers: {
       authorization: apiKey(),
       accept: "application/json",
+      ...(init.idempotencyKey ? { "Idempotency-Key": init.idempotencyKey } : {}),
       ...(init.body === undefined ? {} : { "content-type": "application/json" }),
     },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),

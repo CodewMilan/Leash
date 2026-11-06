@@ -47,15 +47,6 @@ export function rpcUrl() {
 export function indicativeRate() {
   return process.env.PAYOUT_INR_PER_USDT || "84.00";
 }
-export function worldAction() {
-  return "shagun-human";
-}
-export function worldEnvironment() {
-  const environment = process.env.WORLD_ENVIRONMENT || "production";
-  if (!["production", "staging"].includes(environment))
-    throw new AppError("World environment is invalid.", 503);
-  return environment as "production" | "staging";
-}
 export function appStatus(): AppStatus {
   const has = (...keys: string[]) => keys.every((key) => !!process.env[key]);
   const services = [
@@ -73,11 +64,6 @@ export function appStatus(): AppStatus {
       name: "Whitechain",
       ready: has("VAULT_ADDRESS", "RELAYER_PRIVATE_KEY", "ATTESTER_PRIVATE_KEY"),
       detail: "Vault and sponsored gas",
-    },
-    {
-      name: "World ID",
-      ready: has("WORLD_APP_ID", "WORLD_RP_ID", "WORLD_SIGNING_KEY"),
-      detail: "Proof of Human",
     },
     {
       name: "Virtual cards",
@@ -102,7 +88,7 @@ export function appStatus(): AppStatus {
     chainId: 1874,
     rate: indicativeRate(),
     testMode: true,
-    ready: services.every((s) => s.ready),
+    ready: services.filter((s) => s.name !== "UPI test payouts").every((s) => s.ready),
     services,
   };
 }

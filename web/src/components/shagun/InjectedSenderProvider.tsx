@@ -5,6 +5,7 @@ import { BrowserProvider, toQuantity, type Eip1193Provider } from "ethers";
 import { WHITECHAIN } from "@/lib/chain";
 import { api } from "@/lib/client-api";
 import { WALLETS, walletOption } from "@/lib/wallets";
+import { withWalletAuthorization } from "@/lib/wallet-sign-in";
 import { SenderContext } from "./SenderContext";
 
 type Injected = Eip1193Provider & {
@@ -48,7 +49,10 @@ function useMetaMask() {
 
 async function switchToWhitechain(provider: Injected) {
   try {
-    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] });
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: CHAIN_HEX }],
+    });
   } catch (error) {
     if (rpcCode(error) !== 4902) throw error;
     await provider.request({
@@ -103,18 +107,23 @@ export function InjectedSenderProvider({ children }: { children: ReactNode }) {
   async function connect(walletId: string) {
     if (walletId !== METAMASK.id) throw new Error("Choose a supported wallet.");
     if (!provider)
-      throw new Error("MetaMask isn't installed in this browser. Install it, then reload this page.");
+      throw new Error(
+        "MetaMask isn't installed in this browser. Install it, then reload this page.",
+      );
     const accounts: string[] = await provider.request({ method: "eth_requestAccounts" });
     if (!accounts[0]) throw new Error("Your wallet did not share an account.");
     await api("session", {});
-    const accountSigner = await signer();
-    const address = (await accountSigner.getAddress()).toLowerCase();
-    const challenge = await api<{ challengeId: string; message: string }>("auth/sender/options", {
-      address,
-    });
-    await api("auth/sender/verify", {
-      challengeId: challenge.challengeId,
-      signature: await accountSigner.signMessage(challenge.message),
+    const address = await withWalletAuthorization(provider, async () => {
+      const accountSigner = await signer();
+      const address = (await accountSigner.getAddress()).toLowerCase();
+      const challenge = await api<{ challengeId: string; message: string }>("auth/sender/options", {
+        address,
+      });
+      await api("auth/sender/verify", {
+        challengeId: challenge.challengeId,
+        signature: await accountSigner.signMessage(challenge.message),
+      });
+      return address;
     });
     setAccount(address);
     setSession(address);
