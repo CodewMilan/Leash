@@ -80,6 +80,19 @@ export function appStatus(): AppStatus {
       detail: "Proof of Human",
     },
     {
+      name: "Virtual cards",
+      ready:
+        has(
+          "STRIPE_SECRET_KEY",
+          "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+          "STRIPE_AUTHORIZATION_WEBHOOK_SECRET",
+          "STRIPE_EVENTS_WEBHOOK_SECRET",
+        ) &&
+        !!process.env.STRIPE_SECRET_KEY?.match(/^(sk|rk)_test_/) &&
+        !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith("pk_test_"),
+      detail: "Stripe Issuing sandbox",
+    },
+    {
       name: "UPI test payouts",
       ready:
         has(

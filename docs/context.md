@@ -3,54 +3,55 @@ cursor:
   subagentId: "bc-c80311ec-5056-53d1-9e6f-a4f97096dc61"
 ---
 
-# Shagun: knowledge base (crypto gift → UPI cash-out)
+# Shagun: knowledge base (crypto gift → Stripe sandbox virtual card)
 
 "Shagun" is a working name. This file is the single source of truth for any teammate or AI agent on the gift project at ETHGlobal Mumbai.
 
 Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:30 IST.
 
-*Updated Fri 16:00 IST: the three open checks are resolved (section 5), and the cash-out is now Razorpay UPI instead of a virtual Visa card.*
+*Updated Fri 17:10 IST: Stripe Issuing sandbox cards are the main redemption path. RazorpayX UPI is optional. Follow [stripe-phase-plan.md](./stripe-phase-plan.md) for the phased build and corrected authorization/expiry accounting. The current code is the earlier UPI foundation; Stripe card functionality is not yet implemented.*
 
 ## 1. One-liner and positioning
 
-**"Send a Diwali shagun in dollars to anyone. They never see crypto, only the right person can claim it, it lands in their UPI, and an unclaimed gift comes back to you."**
+**“Send a Diwali shagun in dollars. A verified human claims a virtual card, spends from the gift, and the reconciled unused balance comes back to the sender.”**
 
-- **Who we're showcasing:** Whitechain. The pitch is that we're the best showcase of Whitechain USDT payments nobody notices, not another off-ramp.
-- **Hook:** Diwali is Sun Nov 8. Judges get a physical envelope with an NFC sticker inside. They tap it with their phone, claim it, and see rupees arrive in UPI.
-- **Three differentiators** that the earlier card projects in section 9 lacked:
-  1. **The sender and recipient both see zero crypto.** There's no wallet, no gas and no seed phrase. The sender signs a gasless authorization, our relayer pays all gas, and the recipient confirms with their phone's fingerprint (a passkey).
-  2. **Bound to one human with World ID.** See section 4 for what that does and doesn't stop.
-  3. **Unclaimed gifts return to the sender automatically** at expiry, on-chain. Nobody has to trust an issuer to do it.
-- **India-native.** UPI is how India actually receives money, which makes it a stronger story for Mumbai judges than a Visa card.
-  - Be honest about the regulatory side: in production, the rupee payout must go through a **FIU-IND-registered crypto exchange (VDA) partner**, with 1% tax deducted at source (TDS) on the conversion.
-  - Razorpay's live terms don't allow crypto merchants, so Razorpay is used here in **test mode only**.
+- **Primary partner:** Whitechain. Showcase gasless official-USDT settlement and verifiable gift rules.
+- **Demo hook:** the judge taps an NFC envelope, confirms their device and World verification, and sees a genuine Stripe Issuing sandbox card in the browser.
+- **Three differentiators:** no sender-paid gas or recipient wallet; one-per-human company campaigns; unused gift value returned after expiry and reconciliation.
+- **Main redemption:** Stripe Issuing test mode, with a spending budget matching the gift. The card cannot purchase real goods. Stripe's prefunded test USD balance is separate from Whitechain USDT.
+- **Optional extra:** RazorpayX UPI test payout, as an alternative redemption mode, after the card demo passes.
+- **Production scope:** neither issuing/availability in India nor automatic conversion of Whitechain USDT into Stripe funds is established. Verify production provider eligibility before making geographic or real-money claims.
 
 ## 2. Ground rules
 
-- **On-chain parts are real.** That means real Whitechain Sepolia, the official test USDT, verified contracts, and real World verification. Never fake a transaction.
-- **The rupee payout is RazorpayX test mode, and we say so.** Label it "test mode" in the UI, README and demo. No partner pays for this part (see section 6).
-- **Payout work is capped at about 2 hours.** Build it last, give it one owner, and set a hard stop. If it breaks, show a recorded clip.
-- **Secrets live in environment variables** (section 12), never in code or chat.
-- **Commit steadily.** Whitechain checks for steady progress, not one big upload at the end.
+- Real testnet transactions and real World verification; never fabricate receipts.
+- Label every card and purchase simulation **Stripe Issuing TEST MODE**. Use the actual card brand returned by Stripe; do not assume Visa before account verification.
+- Preserve the existing brand kit and coordinate with the landing-page developer.
+- Start with the Stripe account/access gate. Budget roughly three hours for the provider-specific slice; balance/contract changes, testing and the existing external setup take additional effort. Keep the 03:00 integration hard stop and 05:00 feature freeze.
+- Secrets come from environment variables only. Commit steadily and distinguish implemented behavior from planned integrations.
+- A claimed-card return needs off-chain card/hold reconciliation. Only the unclaimed-envelope return can retain the existing permissionless expiry rule without additional provider trust.
 
 ## 3. User flows
 
-**A. Sender (a person, or a company doing batch Diwali gifts)**
-1. Opens the dashboard and enters an amount in USDT, a recipient (a Shagun handle or an "envelope"), and an expiry.
-2. Signs one gasless authorization with the embedded wallet. This is an EIP-3009 `ReceiveWithAuthorization` (see section 5). The relayer submits it, and the USDT moves into `ShagunVault`. The sender pays no gas.
-3. Gets a claim link or QR code, which is written to an NFC sticker for the envelope.
-4. The dashboard shows each gift's status (sent → claimed → cashed out / returned) and offers a CSV export.
+**A. Sender**
+1. Signs in, chooses a gift amount, campaign if any, and expiry.
+2. Signs an EIP-3009 authorization with gift terms committed to its nonce. The relayer funds the vault and pays gas.
+3. Shares the private claim link/QR/NFC URL after chain confirmation.
+4. Tracks funded, reserved, captured, return-pending and returned amounts, with receipts and CSV export.
 
 **B. Recipient**
-1. Taps the envelope or opens the link. A web page opens; there's no app to install.
-2. Confirms with their fingerprint (passkey) and passes World ID (Proof of Human).
-3. Enters their UPI ID. The backend verifies World, the relayer calls `claim()`, and then `cashOut()` moves the USDT to the payout treasury.
-4. A RazorpayX payout (test mode) of the rupee amount is sent to their UPI ID. The screen shows the payout ID next to the Whitechain explorer link.
+1. Opens the link, confirms with a passkey, and passes backend-verified World Proof of Human.
+2. The relayer confirms `claim()`. An idempotent issuance job creates one sandbox virtual USD card and binds it to that gift.
+3. Recipient-only Stripe Issuing Elements displays the card details. PAN/CVC are never stored or served by our backend.
+4. A test purchase sends a signed synchronous authorization webhook. The backend atomically reserves available budget and promptly approves or declines; it does not wait for chain confirmation.
+5. Capture events record actual spending and enqueue idempotent partial on-chain settlement. The UI distinguishes approval holds, captured purchases and settlement receipts.
+6. At expiry, stop new approvals, cancel the card, reconcile pending liabilities, close the card allocation and return safely unused USDT. Display return pending until confirmed.
 
-**C. Denied paths (must be shown)**
-- **Forwarded link after the claim:** a different human fails the World check, so the claim is rejected and nothing moves.
-- **Second claim of a "one per human" campaign gift by the same person:** rejected.
-- **Expired gift:** the claim is rejected, and the funds have already gone back to the sender through `refundExpired()`.
+**C. Denied paths**
+- A consumed envelope cannot be claimed again.
+- A human claiming a second gift in the same company campaign is rejected.
+- An unsupported, expired or over-budget authorization is declined in the supported sandbox flow. Stripe controls supplement the atomic ledger.
+- An unclaimed expired gift returns in full. A claimed card with pending liabilities remains in closing/reconciliation instead of refunding money still needed for an approved purchase.
 
 ## 4. What World ID does and doesn't protect (be precise in Q&A)
 
@@ -63,18 +64,17 @@ Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:3
   - Stop a thief who steals an **unregistered** envelope and claims it first.
   - So don't claim it's "scam-proof". The honest line is: **"bound to one verified human; forwarded links and bot farms fail."**
 - **Credential:** Proof of Human, which is the minimum sufficient level because we only need to know they're a unique person. World's IDKit brief rewards choosing the minimum credential.
-- **Mechanics:** verify on the backend and never trust the client. Use the IDKit action `claim-<giftId>` for envelopes and `shagun-handle` for registration. Store only the nullifier.
+- **Mechanics:** verify on the backend and never trust the client. The current implementation uses the stable `shagun-human` action with a fresh gift/session-bound signal, so campaign uniqueness does not compare unrelated action nullifiers. Retain only necessary anonymous identifiers and verification metadata; handles remain deferred.
 
 ## 5. Architecture and verified facts
 
-```
-Sender dashboard (Next.js, embedded EOA) ─sign EIP-3009─► Backend (Node/TS) ─► Relayer (pays WBT gas)
-                                                             │                    │
-                                       World IDKit verify ───┤                    ▼
-                                                             │      ShagunVault.sol (Whitechain Sepolia, 1874)
-Recipient claim page (Next.js, passkey, NFC link) ───────────┤        └─ holds official test USDT
-                                                             ├──► Chainlink CRE workflow (log trigger → RazorpayX → status)
-                                                             └──► RazorpayX test mode (UPI payout)
+```text
+Sender dashboard / Privy → signed EIP-3009 → backend → relayer → Whitechain ShagunVault
+Recipient / passkey + World → verified claim → issuance job → Stripe Issuing sandbox
+Stripe authorization webhook → atomic PostgreSQL reservation → fast approve/decline
+Stripe capture events → durable settlement job → partial vault spend → treasury
+Expiry worker → card cancellation + hold reconciliation → closure → unused USDT return
+Optional alternative: RazorpayX UPI test payout (one redemption mode per gift)
 ```
 
 ### Verified on-chain on Fri Nov 6 (by direct RPC calls)
@@ -92,12 +92,23 @@ Recipient claim page (Next.js, passkey, NFC link) ──────────
 - **Sender wallet:** an embedded EOA (generated in the browser and protected by a passkey-encrypted backup, or a provider such as Privy or Dynamic if it supports a custom chain 1874). It holds test USDT from the faucet and never needs WBT.
 - **Recipient:** never holds tokens or keys. The vault pays out on their behalf after the World and passkey checks.
 
-### `ShagunVault.sol` (deployed and **verified** on the Whitechain explorer)
-- `createGiftWithAuthorization(from, amount, validAfter, validBefore, nonce, sig, expiry, secretHash, boundNullifier)` calls `USDT.receiveWithAuthorization(...)` and records the gift.
-- `claim(giftId, secret, nullifier, backendAttestation)` can only be called by the relayer. It checks the secret hash, the expiry and the backend-signed World attestation, then binds the nullifier.
-- `cashOut(giftId, amount, payoutRef)` can only be called by the operator. It moves USDT to the payout treasury and emits `CashOut(giftId, amount, payoutRef)`.
-- `refundExpired(giftId)` can be called by anyone after expiry. It returns the unclaimed remainder to the sender.
-- Events `GiftCreated`, `GiftClaimed`, `CashOut` and `Returned` feed the dashboard and the CSV export.
+### `ShagunVault.sol`: current code and required card changes
+
+The current vault has gasless creation, attested claim, whole-gift `cashOut`, campaign uniqueness, admin pause/key rotation, and unclaimed-only expiry refunds. No deployment/verification of this implementation has been evidenced yet.
+
+The card phase needs a new deployment with partial `spend(giftId, amount, transactionRef)`, remaining-balance accounting, reference deduplication, and a claimed-card closure checkpoint before returning its unused balance. Settle captures, not every approval as if it were final spending. Use actual Stripe transaction references because one authorization can yield multiple lifecycle/transaction events.
+
+Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depends on the backend reconciling outstanding card liabilities; document that trust boundary.
+
+### Stripe Issuing sandbox: next integration
+
+- Prove actual Issuing access, a funded test balance, cardholder requirements, virtual card creation, returned brand and activation before building the full UI.
+- Use all-time spending controls plus a transactional balance ledger. Stripe documents delayed control aggregation; controls alone are not a universal exact-balance guarantee.
+- Use authenticated Issuing Elements and scoped ephemeral keys. Never expose another claimant's card or return PAN/CVC from our API.
+- The real-time authorization response deadline is two seconds. Keep chain writes asynchronous and configure decline fallback.
+- Track authorization holds, captures, reversals and closure separately. Cancellation does not prevent capture of already approved purchases, so it cannot alone authorize an immediate refund.
+- Demonstrate controlled sandbox purchases through Stripe's actual test helpers. Keep unsupported network cases and production issuing scope outside the MVP claims.
+- See [Stripe phase plan](./stripe-phase-plan.md) for the implementation sequence, tests, prerequisites and official references.
 
 ### Relayer drain protection (Whitechain asks for this)
 - The relayer may only call `ShagunVault` functions, and the backend enforces an allowlist.
@@ -108,19 +119,19 @@ Recipient claim page (Next.js, passkey, NFC link) ──────────
 - CRE CLI v1.15.0 (May 14, 2026) added a global **`--allow-unknown-chains`** flag for `cre workflow simulate` and `deploy` ([CLI reference](https://docs.chain.link/cre/reference/cli), [release notes](https://docs.chain.link/cre/release-notes)).
 - **Caveat:** "chain-selector and RPC availability are still enforced". If Whitechain has no chain selector registered, the flag may not be enough.
 - **On-chain writes in simulation go through a mock forwarder listed per tenant** (`cre workflow supported-chains`, which needs `cre login`). An unlisted chain probably has none.
-- **First hour:** run `cre workflow simulate --allow-unknown-chains` with the 1874 RPC set in `project.yaml`.
-  - **Plan A:** an EVM log trigger on `GiftClaimed` → HTTP call to the RazorpayX payout → write `payoutRef` back on-chain.
-  - **Plan B (still qualifies):** if writes fail, the workflow reads the gift from Whitechain and calls RazorpayX, and the backend writes `cashOut()`. The brief only requires "at least one blockchain integrated with an external API".
+- **After the card-first core works:** run `cre workflow simulate --allow-unknown-chains` with the 1874 RPC set in `project.yaml`.
+  - **Plan A:** use a confirmed claim event to orchestrate the existing idempotent Stripe issuance service. Keep CRE outside synchronous card authorization.
+  - **Plan B:** if chain writes fail but reads work, read the gift from Whitechain and invoke the same authenticated issuance service while the backend records chain effects. Prove that it is meaningfully used; do not create a second redemption path.
   - **Plan C:** if Whitechain can't be reached at all, drop Chainlink for ENS (see section 6).
 
-### RazorpayX (verified in the docs)
+### RazorpayX (optional alternative; earlier integration foundation)
 - **Razorpay has no card-issuing API.** A virtual Visa card isn't possible with Razorpay; use **UPI payouts** instead.
 - **RazorpayX test mode** has its own dummy balance (add any test amount), test API keys, contacts, fund accounts (UPI ID / `vpa`), payouts and webhooks ([test mode](https://razorpay.com/docs/x/dashboard/test-mode)).
 - **Flow:** create a contact → create a fund account of type `vpa` → `POST /v1/payouts` with `mode: "UPI"` and an `X-Payout-Idempotency` header ([payout to VPA](https://razorpay.com/docs/api/x/payouts/create/vpa/)).
 - **Gotchas:**
   - Payouts need **IP allowlisting**. A local CRE simulation calls from your laptop's IP, so allowlist the hotspot IP and recheck if it changes.
   - Test payouts stay in `processing` until you move them forward manually in the dashboard. Do that live as the demo beat, or use the `payout.processed` webhook.
-  - Signing up for a new RazorpayX account may need a business profile. **Get test keys in the first hour.** If you're blocked, fall back to the Lithic sandbox virtual card.
+  - Signing up for a new RazorpayX account may need a business profile. Verify payout access only when adding optional UPI; do not let it block the Stripe card flow.
 - **Exchange rate:** a fixed demo rate in the config, shown on screen as "indicative". Don't present it as a live market rate.
 
 ## 6. Partner tracks (3 picks)
@@ -130,31 +141,26 @@ Recipient claim page (Next.js, passkey, NFC link) ──────────
 | **Whitechain** | **Scale · Payments Nobody Notices** | $2,000 / $1,000 | **Primary** | A payer flow with zero visible crypto steps, shown in the demo (our EIP-3009 sender flow is exactly this). You must explain how the business pays gas, how the relayer gets WBT, and what stops someone draining it. Won't place: a payer who still signs a transaction that costs them gas. |
 | Whitechain (same pick) | Operate · Stablecoin Payments for Business | $2,500 / $1,500 / $1,000 | Moderate | A drop-in widget a separate demo app adds in about 20 lines (a "Send a Shagun" button), both views, and extra credit for going past the first payment (return, export). Won't place: a plain transfer button, tipping jars, custodial bridges into a local-currency token, or escrow on its own. Don't describe the UPI cash-out as a "bridge into local currency". |
 | **World** | Best Use of IDKit | $1,250 × 2 | Good | IDKit verified server-side; why Proof of Human is the minimum credential; one alternative path (rejected or ineligible); an integration debrief. |
-| **Chainlink** | Best workflow with CRE | $1,500 | Good if plan A or B works | A CRE workflow that connects a chain to an outside API, simulated in the CLI and actually used in the project. Ours connects Whitechain to RazorpayX. |
+| **Chainlink** | Best workflow with CRE | $1,500 | Good if plan A or B works | A CRE workflow that connects a chain to an outside API, simulated in the CLI and actually used in the project. Keep it out of the synchronous Stripe authorization path. |
 
 - **ENS fallback if CRE can't reach Whitechain:** Best Use of ENSv2 ($3,000 / $2,000 / $1,000). Shagun handles become non-transferable ENSv2 subnames (`priya.shagun.eth`) on Sepolia, bound to the World nullifier, with Enhanced Access Control (EAC) letting only the owner edit their payout record.
 - **Not targeting:** Arc, Hedera, 0G, Uniswap, 1inch, Definitive, EF.
 - **Money (judgment call):** max about $7.25k in partner prizes, plus finalist cash (4 × $1,500 = $6k). Expected about $2–3k.
 
-## 7. Demo script (4 min finalist; 2–4 min Whitechain video)
+## 7. Card-first demo
 
-1. **Hook (20s):** "Diwali shagun, sent in dollars from anywhere, received in UPI. Nobody touches crypto." Check any statistic before you say it.
-2. **Send (40s):** the company dashboard sends 25 USDT to a judge's envelope. One fingerprint, no gas pop-up, and the explorer link appears.
-3. **Claim (60s):** hand over the envelope. The judge taps it, confirms with their fingerprint, passes World and enters a UPI ID. The rupee amount shows as a RazorpayX payout (TEST MODE). Move it to "processed" live.
-4. **Denied (30s):** a teammate opens the forwarded link, fails World and is rejected. Nothing moves on-chain.
-5. **Return (30s):** an unclaimed gift reaches expiry, and the USDT goes back to the sender, shown with an explorer link.
-6. **Business (30s):** the 20-line widget dropped into a demo app, plus the CSV export.
-7. **Close (20s):** relayer economics, drain protection, and the one-liner.
+1. Send a $25 gift with a gasless authorization and show its real Whitechain receipt.
+2. Tap the envelope, confirm the device and World proof, and display the real sandbox card through Issuing Elements.
+3. Simulate an $8 USD purchase, capture it, and show the captured transaction plus on-chain settlement.
+4. Decline an over-budget purchase and a repeat campaign claim without moving more funds.
+5. Expire/cancel the card, reconcile holds, and show $17 USDT returned. Separately show a fully unclaimed gift returning in full.
+6. Show sender receipts/CSV and explain relayer funding, caps and sandbox limitations.
 
-## 8. Build plan (about 17 h, 4 people)
+## 8. Phase order and deadline
 
-| When (IST) | Contracts + relayer | Claim page + passkey | World + backend | Payout + CRE + NFC |
-|---|---|---|---|---|
-| Fri 16:00–17:30 | Faucet; one real `receiveWithAuthorization`; `ShagunVault` skeleton | Next.js scaffold, claim UI | World portal app; IDKit verified on the backend | RazorpayX test keys + one test UPI payout; `cre workflow simulate --allow-unknown-chains` against 1874 |
-| 17:30–21:00 | Deploy and verify on 1874; first gasless gift | Passkey confirm, NFC link handling | Claim attestation, nullifier binding | Payout endpoint, IP allowlist; buy NTAG215 stickers |
-| 21:00–01:00 | Relayer allowlist and caps; `cashOut` and `refundExpired` | Sender dashboard, status timeline | Denied paths, handle registration | CRE plan A or B (or the ENS fallback) |
-| 01:00–05:00 | Drop-in widget package (Operate) | CSV export, polish | World debrief, README | Hard stop on payout work at 03:00; record a clip if needed |
-| 05:00–08:30 | **Freeze features.** Rehearse ×3, record the video, write WHITECHAIN_FEEDBACK.md, **submit by 08:30**. | | | |
+Follow [stripe-phase-plan.md](./stripe-phase-plan.md): access spike → balance/contract migration → claim-to-card → purchases/settlement → closure/returns → integration checks/demo. Estimated core effort is roughly 5–7 hours after the existing foundation, dependent on account access and remaining live integrations. Optional UPI/CRE follow only after the card demo passes.
+
+Freeze features by **05:00 IST**, rehearse, record and prepare evidence, and target submission by **08:30 IST** before the **09:00** deadline.
 
 ## 9. Precedents (checked on Medalist / ETHGlobal)
 
@@ -169,12 +175,12 @@ Recipient claim page (Next.js, passkey, NFC link) ──────────
 
 ## 10. Q&A prep
 
-- **"Isn't this just an off-ramp?"** An off-ramp needs the recipient to have an exchange account, KYC and a wallet. Ours needs one tap and one fingerprint, it's bound to one human, and unclaimed money goes back to the sender automatically.
-- **"Is the UPI payout real?"** It's RazorpayX test mode, and we say so. The USDT, vault, claim and return are real on Whitechain. In production, the payout goes through a FIU-IND-registered VDA partner with TDS.
-- **"Why not just UPI the money directly?"** Senders abroad can't UPI, and UPI can't hold a gift until the right human claims it or return it automatically at expiry.
-- **"Relayer drain?"** It's allowlisted to vault functions, capped per gift and per human per day, and funded by a 0.5% fee in production.
-- **"Stolen envelope?"** A registered handle can't be claimed by a thief. An unregistered envelope goes to the first verified claimer, and the sender can cancel before it's claimed. Be honest about this.
-- **"Why Whitechain?"** USDT settlement, EIP-3009 so the business sponsors gas, and an explorer-verifiable record. This one-line answer is required in the README.
+- **Is the card real money?** It is a genuine Stripe Issuing sandbox card; purchases are simulated. Whitechain transactions use official test USDT. Neither has monetary value in this demo.
+- **Does Stripe convert the USDT?** No. A prefunded sandbox Issuing balance backs simulated card purchases. USDT settlement is the corresponding on-chain gift ledger operation.
+- **Are returns trustless?** Unclaimed expiry returns are permissionless. Claimed-card unused returns require provider/ledger reconciliation and an authorized closure before the chain releases funds.
+- **What does World prove?** A unique verified human, enabling one-per-human campaigns. An unregistered envelope can be claimed by the first eligible holder; it does not prove that holder is the intended recipient.
+- **How is gas paid?** Faucet WBT on testnet, allowlisted relayer operations and spending caps. A proposed 0.5% production fee is not currently collected.
+- **Why Whitechain?** Official USDT with EIP-3009 permits sponsored gas, while gift conditions and returns have verifiable on-chain receipts.
 
 ## 11. Submission checklist
 
@@ -191,6 +197,8 @@ Recipient claim page (Next.js, passkey, NFC link) ──────────
 - **ETHGlobal:** public repo, demo video and team contacts. Pick the 3 partners and opt into finalist judging.
 
 ## 12. Environment variables (names only)
+
+Stripe phase: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_AUTHORIZATION_WEBHOOK_SECRET`, `STRIPE_EVENTS_WEBHOOK_SECRET`, and a pinned `STRIPE_API_VERSION`. These are planned configuration names; Stripe runtime support is not yet implemented.
 
 `WHITECHAIN_RPC_URL=https://rpc.testnet.whitechain.io`, `USDT_ADDRESS=0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`, `VAULT_ADDRESS`, `RELAYER_PRIVATE_KEY`, `ATTESTER_PRIVATE_KEY`, `WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_SIGNING_KEY`, `RAZORPAYX_KEY_ID`, `RAZORPAYX_KEY_SECRET`, `RAZORPAYX_ACCOUNT_NUMBER` (the test-mode customer identifier), `PAYOUT_INR_PER_USDT` (demo rate), `CRE_*` (per the CLI setup) or `ENS_*` (fallback), and `NEXT_PUBLIC_*` only for non-secret IDs.
 
@@ -215,4 +223,14 @@ Recipient claim page (Next.js, passkey, NFC link) ──────────
   - Test mode: https://razorpay.com/docs/x/dashboard/test-mode
   - Payout to a UPI ID: https://razorpay.com/docs/api/x/payouts/create/vpa/
 - ENSv2 (fallback): https://docs.ens.domains/ensv2/overview/
-- Lithic sandbox (fallback if RazorpayX is blocked): https://docs.lithic.com
+- Lithic sandbox (possible alternative issuer; do not switch automatically): https://docs.lithic.com
+
+### Stripe references for this phase
+
+- Testing: https://docs.stripe.com/issuing/testing
+- Virtual card creation: https://docs.stripe.com/api/issuing/cards/create
+- Issuing Elements: https://docs.stripe.com/issuing/elements
+- Real-time authorization: https://docs.stripe.com/issuing/controls/real-time-authorizations
+- Spending controls: https://docs.stripe.com/issuing/controls/spending-controls
+- Authorization lifecycle: https://docs.stripe.com/issuing/purchases/authorizations
+- Captures and transactions: https://docs.stripe.com/issuing/purchases/transactions

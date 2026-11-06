@@ -49,6 +49,22 @@ pnpm build
 E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
+## Stripe Issuing sandbox (Phase 0)
+
+The card path follows [stripe-phase-plan.md](docs/stripe-phase-plan.md). Phase 0 proves account access only; claims do not issue cards yet. Only `sk_test_`/`rk_test_` and `pk_test_` keys are accepted, and any `livemode: true` object or event is rejected.
+
+```bash
+cd web
+# Set STRIPE_SECRET_KEY and NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in .env.local first.
+pnpm stripe:phase0 check            # sandbox Issuing balance
+pnpm stripe:phase0 fund 10000       # US accounts: add $100 of test funds
+pnpm stripe:phase0 card             # create + activate a $25 virtual card, prints STRIPE_PHASE0_CARD_ID
+pnpm stripe:phase0 authorize 800 --capture
+pnpm stripe:phase0 authorize 3000   # over budget, expect a decline
+```
+
+Webhooks: `/api/webhooks/stripe/authorization` answers `issuing_authorization.request` within the two-second window (signed with `STRIPE_AUTHORIZATION_WEBHOOK_SECRET`); `/api/webhooks/stripe/events` records lifecycle events once (`STRIPE_EVENTS_WEBHOOK_SECRET`). Locally, forward them with the Stripe CLI (`stripe listen --forward-to localhost:3000/api/webhooks/stripe/authorization`) and set the Issuing real-time authorization endpoint in the sandbox Dashboard. In development, `/dev/card` shows the Phase 0 card through Stripe Issuing Elements; it needs a session, so the database must be running.
+
 Use `pnpm exec playwright install chromium` once if no browser is installed. Browser tests isolate their server on port 3100 and a separate build directory. CI runs type/lint/tests, compilation, migrations, production build and browser checks without real provider credentials.
 
 ## How value moves

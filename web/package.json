@@ -2,7 +2,9 @@
   "name": "shagun-web",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,6 +17,7 @@
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate.mts",
     "worker": "node --env-file-if-exists=.env.local --import tsx scripts/worker.mts",
     "chain:check": "node --env-file-if-exists=.env.local --import tsx scripts/check-chain.mts",
+    "stripe:phase0": "node --env-file-if-exists=.env.local --import tsx scripts/stripe-phase0.mts",
     "contracts:build": "node scripts/compile-contracts.mjs",
     "contracts:deploy": "node --env-file-if-exists=.env.local --import tsx scripts/deploy-vault.mts",
     "test:e2e": "playwright test",
@@ -29,6 +32,7 @@
     "@solana-program/system": "0.16.0",
     "@solana-program/token": "0.16.1",
     "@solana/kit": "8.6.0",
+    "@stripe/stripe-js": "^10.2.1",
     "@worldcoin/idkit": "^4.6.0",
     "@worldcoin/idkit-core": "^4.6.0",
     "ethers": "^6.17.0",
@@ -39,6 +43,7 @@
     "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "stripe": "^23.1.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

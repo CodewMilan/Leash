@@ -16,7 +16,7 @@ importers:
         version: 5.0.2
       '@privy-io/react-auth':
         specifier: ^3.51.3
-        version: 3.51.3(@solana-program/system@0.16.0(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana-program/token@0.16.1(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3))(@solana/sysvars@8.6.0(typescript@5.9.3))(@stripe/stripe-js@1.54.2)(@tanstack/query-core@5.106.1)(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.0))(@types/react@19.3.0)(bufferutil@4.0.7)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(utf-8-validate@6.0.3))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.3)(zod@4.6.7)
+        version: 3.51.3(@solana-program/system@0.16.0(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana-program/token@0.16.1(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3))(@solana/sysvars@8.6.0(typescript@5.9.3))(@stripe/stripe-js@10.2.1)(@tanstack/query-core@5.106.1)(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.0))(@types/react@19.3.0)(bufferutil@4.0.7)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(utf-8-validate@6.0.3))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.3)(zod@4.6.7)
       '@simplewebauthn/browser':
         specifier: ^14.0.0
         version: 14.0.0
@@ -32,6 +32,9 @@ importers:
       '@solana/kit':
         specifier: 8.6.0
         version: 8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)
+      '@stripe/stripe-js':
+        specifier: ^10.2.1
+        version: 10.2.1
       '@worldcoin/idkit':
         specifier: ^4.6.0
         version: 4.6.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -62,6 +65,9 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
+      stripe:
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@20.19.43)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2240,8 +2246,9 @@ packages:
     peerDependencies:
       '@stripe/stripe-js': ^1.46.0
 
-  '@stripe/stripe-js@1.54.2':
-    resolution: {integrity: sha512-R1PwtDvUfs99cAjfuQ/WpwJ3c92+DAMy9xGApjqlWQMj0FKQabUAys2swfTRNzuYAYJh7NqK2dzcYVNkKLEKUg==}
+  '@stripe/stripe-js@10.2.1':
+    resolution: {integrity: sha512-diHeR1/FeWZZzuFXEvkjRMzydgKEpxUTrKEUxSV8NcpeZY3Kl8C4Gerw/JSMK+3oXsBRJtgkG7ckviQJ651moA==}
+    engines: {node: '>=12.16'}
 
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
@@ -5407,6 +5414,15 @@ packages:
   strip-literal@3.1.0:
     resolution: {integrity: sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==}
 
+  stripe@23.1.0:
+    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@types/node': '>=20'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   styled-components@6.6.0:
     resolution: {integrity: sha512-drKKsqvDBxVRn4ySU67iQ5nQBuo/1xyYeBfdhDde112PkqrS3+95KPnpDs5hFRcmrW+q6+gbyywYYYR14oWFtw==}
     engines: {node: '>= 16'}
@@ -7276,7 +7292,7 @@ snapshots:
 
   '@privy-io/popup@0.0.6': {}
 
-  '@privy-io/react-auth@3.51.3(@solana-program/system@0.16.0(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana-program/token@0.16.1(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3))(@solana/sysvars@8.6.0(typescript@5.9.3))(@stripe/stripe-js@1.54.2)(@tanstack/query-core@5.106.1)(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.0))(@types/react@19.3.0)(bufferutil@4.0.7)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(utf-8-validate@6.0.3))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.3)(zod@4.6.7)':
+  '@privy-io/react-auth@3.51.3(@solana-program/system@0.16.0(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana-program/token@0.16.1(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)))(@solana/kit@8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3))(@solana/sysvars@8.6.0(typescript@5.9.3))(@stripe/stripe-js@10.2.1)(@tanstack/query-core@5.106.1)(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.0))(@types/react@19.3.0)(bufferutil@4.0.7)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(utf-8-validate@6.0.3))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.3)(zod@4.6.7)':
     dependencies:
       '@base-org/account': 1.1.1(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.3)(zod@4.6.7)
       '@base-ui/react': 1.9.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -7298,7 +7314,7 @@ snapshots:
       '@privy-io/urls': 0.0.5
       '@scure/base': 1.2.6
       '@simplewebauthn/browser': 13.3.0
-      '@stripe/crypto': 1.1.3(@stripe/stripe-js@1.54.2)
+      '@stripe/crypto': 1.1.3(@stripe/stripe-js@10.2.1)
       '@tanstack/react-virtual': 3.14.26(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@wallet-standard/app': 1.1.1
       '@walletconnect/ethereum-provider': 2.22.4(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(typescript@5.9.3)(utf-8-validate@6.0.3)(zod@4.6.7)
@@ -9133,11 +9149,11 @@ snapshots:
 
   '@stablelib/utf8@1.0.2': {}
 
-  '@stripe/crypto@1.1.3(@stripe/stripe-js@1.54.2)':
+  '@stripe/crypto@1.1.3(@stripe/stripe-js@10.2.1)':
     dependencies:
-      '@stripe/stripe-js': 1.54.2
+      '@stripe/stripe-js': 10.2.1
 
-  '@stripe/stripe-js@1.54.2': {}
+  '@stripe/stripe-js@10.2.1': {}
 
   '@swc/helpers@0.5.23':
     dependencies:
@@ -13750,6 +13766,10 @@ snapshots:
   strip-literal@3.1.0:
     dependencies:
       js-tokens: 9.0.1
+
+  stripe@23.1.0(@types/node@20.19.43):
+    optionalDependencies:
+      '@types/node': 20.19.43
 
   styled-components@6.6.0(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(utf-8-validate@6.0.3))(react@19.3.0):
     dependencies:
