@@ -79,10 +79,16 @@ export function forgetEnvelopes() {
 }
 
 export function walletMessage(error: unknown, fallback: string) {
-  const e = error as { code?: unknown; info?: { error?: { code?: unknown } }; message?: string };
-  const code = e?.code ?? e?.info?.error?.code;
-  if (code === 4001 || code === "ACTION_REJECTED")
+  type WalletError = { code?: unknown; message?: unknown };
+  const e = error as WalletError & { error?: WalletError; info?: { error?: WalletError } };
+  // ethers wraps wallet errors; the wallet's own error is in `error` (or `info.error`).
+  const wallet = e?.error ?? e?.info?.error;
+  const codes = [e?.code, wallet?.code];
+  if (codes.includes(4001) || codes.includes("ACTION_REJECTED"))
     return "You cancelled the request in your wallet.";
-  if (code === -32002) return "Your wallet already has a request open. Check MetaMask.";
+  if (codes.includes(-32002)) return "Your wallet already has a request open. Check MetaMask.";
+  if (codes.includes(4100))
+    return "MetaMask hasn't connected this account to Shagun. Open MetaMask, connect this account to the site, then try again.";
+  if (typeof wallet?.message === "string" && wallet.message) return wallet.message;
   return error instanceof Error && error.message ? error.message : fallback;
 }
