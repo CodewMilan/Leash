@@ -1,0 +1,3 @@
+#!/bin/sh
+# Every commit runs type checks, lint and unit tests in device/, merchant/ and web/.
+exec pnpm -s check

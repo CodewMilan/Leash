@@ -13,7 +13,8 @@
     "ask": "tsx scripts/ask.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "tsc --noEmit && vitest run"
+    "check": "tsc --noEmit && vitest run",
+    "preflight": "tsx scripts/preflight.ts"
   },
   "dependencies": {
     "@0gfoundation/0g-storage-ts-sdk": "1.2.13",

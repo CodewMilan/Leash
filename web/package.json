@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "check": "tsc --noEmit && eslint && vitest run"
+    "check": "tsc --noEmit && eslint && vitest run",
+    "prebuild": "vitest run"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

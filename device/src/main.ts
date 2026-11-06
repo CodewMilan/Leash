@@ -13,7 +13,9 @@ const agent = new Agent();
 await state.loadHistory();
 const contacts = await loadContacts();
 console.log(`[leash] ${contacts.length} contacts, limit ${config.spendLimitUsdc} USDC, account ${config.hedera.accountId}`);
-if (!config.hedera.spendLogTopicId) console.warn("[leash] HEDERA_SPEND_LOG_TOPIC_ID not set; payments will fail at the spend log step. Run `pnpm setup:hedera`.");
+if (!config.hedera.spendLogTopicId) {
+  throw new Error("HEDERA_SPEND_LOG_TOPIC_ID is not set, so payments could not be logged. Run `pnpm setup:hedera` first.");
+}
 
 if (config.hardware.enabled) {
   await gpio.start();

@@ -43,6 +43,7 @@ Copy `.env.example` to `.env` (repo root, or `device/.env` on the Pi and `mercha
 ```bash
 cd merchant && pnpm install
 pnpm setup          # associates MERCHANT_ACCOUNT_ID with USDC 0.0.429274 (uses MERCHANT_PRIVATE_KEY once)
+pnpm preflight      # checks the account and the facilitator against the real network
 pnpm start          # http://<laptop-ip>:4021, QR codes at /qr/chai and /qr/photo, receipts at /receipts
 ```
 
@@ -60,6 +61,7 @@ pnpm setup:hedera     # associates the device with USDC and creates the spend lo
 # fund the device with testnet USDC: https://faucet.circle.com (Hedera Testnet)
 pnpm enroll:finger    # enroll your thumb on the R503
 pnpm enroll:world     # scan the QR with your phone; put the printed WORLD_OWNER_SUB in .env
+pnpm preflight        # checks every key against the real 0G, Hedera and World services, and the merchants
 pnpm start            # device screen: chromium --kiosk http://localhost:7070/screen
 ```
 
@@ -73,6 +75,15 @@ Default wiring (BCM, override with env): talk button 17, approve 27, cancel 22, 
 cd web && cp .env.example .env.local   # device account, spend log topic, device URL
 pnpm install && pnpm dev               # http://localhost:3000/dashboard
 ```
+
+## Tests
+
+```bash
+pnpm check        # repo root: type checks, lint and unit tests in device/, merchant/ and web/ (also runs on every commit)
+pnpm test:live    # real x402 quotes from the merchant through the live facilitator, built into a transfer by the device code
+```
+
+Unit tests cover the logic that keeps money safe: the spend limit and recipient checks, Hedera transfer bytes built and decoded with the real SDK (including tampered transfers), parsing 0G's answer (anything malformed means safe mode), World ID approval rules, contacts, the spend log format shared with the dashboard (`fixtures/spend-log-entry.json`) and merchant pricing. Nothing in them stands in for 0G, Hedera or World; anything that needs those services runs against the real thing in `pnpm preflight` or `pnpm test:live`.
 
 ## Hedera transactions
 
