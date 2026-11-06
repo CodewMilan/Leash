@@ -1,6 +1,3 @@
-import { config } from "./config.js";
-import type { Contact } from "./contacts.js";
-
 export const USDC_DECIMALS = 6;
 
 export function toBaseUnits(amount: string | number): bigint {
@@ -27,6 +24,13 @@ export interface PaymentToSign {
   payFrom: string;
 }
 
+/** The device's own rules, set by the owner in `.env`. */
+export interface SpendRules {
+  deviceAccountId: string;
+  usdcTokenId: string;
+  spendLimitUsdc: number;
+}
+
 export type PolicyResult =
   | { ok: true; overLimit: boolean }
   | { ok: false; reason: string };
@@ -37,16 +41,17 @@ export type PolicyResult =
  */
 export function checkPayment(args: {
   payment: PaymentToSign;
-  contact: Contact;
+  contact: { name: string; payTo: string };
   decidedAmountUsdc: string | null;
+  rules: SpendRules;
 }): PolicyResult {
-  const { payment, contact, decidedAmountUsdc } = args;
+  const { payment, contact, decidedAmountUsdc, rules } = args;
 
-  if (payment.payFrom !== config.hedera.accountId) {
+  if (payment.payFrom !== rules.deviceAccountId) {
     return { ok: false, reason: `Payment would come from ${payment.payFrom}, not this device's account` };
   }
-  if (payment.tokenId !== config.hedera.usdcTokenId) {
-    return { ok: false, reason: `Merchant asked for token ${payment.tokenId}, only USDC ${config.hedera.usdcTokenId} is allowed` };
+  if (payment.tokenId !== rules.usdcTokenId) {
+    return { ok: false, reason: `Merchant asked for token ${payment.tokenId}, only USDC ${rules.usdcTokenId} is allowed` };
   }
   if (payment.payTo !== contact.payTo) {
     return { ok: false, reason: `Merchant wants payment to ${payment.payTo}, but ${contact.name} is ${contact.payTo}` };
@@ -60,5 +65,5 @@ export function checkPayment(args: {
       reason: `Merchant asks ${fromBaseUnits(payment.amount)} USDC but you agreed to ${decidedAmountUsdc} USDC`,
     };
   }
-  return { ok: true, overLimit: payment.amount > toBaseUnits(config.spendLimitUsdc) };
+  return { ok: true, overLimit: payment.amount > toBaseUnits(rules.spendLimitUsdc) };
 }
