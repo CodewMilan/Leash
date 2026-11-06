@@ -22,7 +22,7 @@ export function AppEnvelope({
         </div>
         <div className="envelope-back" />
         <div className="envelope-face">
-          <span className="envelope-brand">shagun</span>
+          <span className="envelope-brand">chinki</span>
           <span className="envelope-seal">
             <Gift size={24} strokeWidth={1.5} />
           </span>

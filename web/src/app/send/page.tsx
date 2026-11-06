@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { SendWidget } from "@/components/shagun/SendWidget";
 
 export const metadata: Metadata = {
-  title: "Send a Shagun",
+  title: "Send a Chinki",
   description: "Send a prepaid gift card from any app, paid in USDT. The recipient claims it with a passkey as a sandbox prepaid card.",
   robots: { index: false },
 };

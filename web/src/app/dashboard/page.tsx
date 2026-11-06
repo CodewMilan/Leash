@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Dashboard } from "@/components/shagun/Dashboard";
 
 export const metadata: Metadata = {
-  title: "Dashboard · Shagun",
+  title: "Dashboard · Chinki",
   description: "Send a gift and follow its status from signing through claim, card spending, or return.",
 };
 

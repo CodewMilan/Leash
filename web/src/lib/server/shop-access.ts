@@ -42,14 +42,14 @@ export async function availableShopCards(request: NextRequest): Promise<Internal
     cardToken: card.card_token,
     lastFour: card.last_four,
     state: "OPEN",
-    label: `Shagun gift · •••• ${card.last_four}`,
+    label: `Chinki gift · •••• ${card.last_four}`,
   }));
 }
 export async function resolveShopSource(
   request: NextRequest,
   sourceId: unknown,
 ): Promise<{ owner: string; source: ShopSource }> {
-  if (typeof sourceId !== "string") throw new HttpError(400, "Choose a Shagun gift card.");
+  if (typeof sourceId !== "string") throw new HttpError(400, "Choose a Chinki gift card.");
   const selected = (await availableShopCards(request)).find((card) => card.sourceId === sourceId);
   if (!selected)
     throw new HttpError(

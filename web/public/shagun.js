@@ -1,4 +1,4 @@
-/* Send a Shagun widget. Usage: Shagun.button("#target", { amount, note, campaign, app, onGift }) */
+/* Send a Chinki widget. Usage: Chinki.button("#target", { amount, note, campaign, app, onGift }) */
 (function () {
   var script = document.currentScript;
   var origin = script ? new URL(script.src).origin : window.location.origin;
@@ -18,7 +18,7 @@
       "popup,width=" + width + ",height=" + height + ",left=" + left + ",top=" + top,
     );
     if (!popup) {
-      if (options.onError) options.onError(new Error("Allow pop-ups to send a Shagun."));
+      if (options.onError) options.onError(new Error("Allow pop-ups to send a Chinki."));
       return null;
     }
     function receive(event) {
@@ -40,10 +40,10 @@
 
   function button(target, options) {
     var el = typeof target === "string" ? document.querySelector(target) : target;
-    if (!el) throw new Error("Shagun: target element not found.");
+    if (!el) throw new Error("Chinki: target element not found.");
     var b = document.createElement("button");
     b.type = "button";
-    b.textContent = (options && options.label) || "Send a Shagun";
+    b.textContent = (options && options.label) || "Send a Chinki";
     b.style.cssText =
       "display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border:0;border-radius:999px;" +
       "background:#193ef9;color:#fff;font:600 15px/1 system-ui,sans-serif;cursor:pointer";
@@ -54,5 +54,5 @@
     return b;
   }
 
-  window.Shagun = { open: open, button: button, origin: origin };
+  window.Chinki = window.Shagun = { open: open, button: button, origin: origin };
 })();

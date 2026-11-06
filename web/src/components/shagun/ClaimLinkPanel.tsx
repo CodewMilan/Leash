@@ -45,14 +45,14 @@ export function ClaimLinkPanel({ gift, link, qr }: { gift: GiftView; link: strin
   function save() {
     const file = new Blob(
       [
-        `Your private Shagun claim link\n\n${link}\n\nAnyone with this link can start claiming the gift. Share it only with your recipient.\n`,
+        `Your private Chinki claim link\n\n${link}\n\nAnyone with this link can start claiming the gift. Share it only with your recipient.\n`,
       ],
       { type: "text/plain;charset=utf-8" },
     );
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `shagun-claim-${gift.id.slice(2, 12)}.txt`;
+    a.download = `chinki-claim-${gift.id.slice(2, 12)}.txt`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setFeedback("Private claim link saved as a text file. Keep that file private.");

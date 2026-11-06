@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { FlipLink } from "@/components/FlipLink";
@@ -19,7 +20,14 @@ export function Wordmark({ className = "" }: { className?: string }) {
     <span
       className={`inline-flex items-center text-[22px] font-medium tracking-[-0.07em] ${className}`}
     >
-      shagun
+      <Image
+        src="/brand/chinki-rabbit.png"
+        alt=""
+        width={32}
+        height={32}
+        className="mr-1 object-contain"
+      />
+      chinki
     </span>
   );
 }
@@ -58,11 +66,11 @@ export function Header() {
     return (
       <header className="sticky top-0 z-40 border-b border-grey-02 bg-white-00">
         <div className="flex h-[var(--header-h)] items-center justify-between px-4 lg:px-5">
-          <Link href="/" aria-label="Shagun home">
+          <Link href="/" aria-label="Chinki home">
             <Wordmark />
           </Link>
           <Link href="/" className="text-[14px] underline underline-offset-4">
-            About Shagun
+            About Chinki
           </Link>
         </div>
       </header>
@@ -71,7 +79,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-grey-02 bg-white-00">
       <div className="relative hidden h-[var(--header-h)] items-center px-5 lg:flex">
-        <Link href="/" aria-label="Shagun home">
+        <Link href="/" aria-label="Chinki home">
           <Wordmark />
         </Link>
         <nav
@@ -94,7 +102,7 @@ export function Header() {
       </div>
 
       <div className="flex h-[var(--header-h)] items-center justify-between pl-4 lg:hidden">
-        <Link href="/" aria-label="Shagun home">
+        <Link href="/" aria-label="Chinki home">
           <Wordmark />
         </Link>
         <div className="ml-auto h-full">

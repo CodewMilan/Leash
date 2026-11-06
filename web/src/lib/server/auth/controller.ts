@@ -29,7 +29,7 @@ export async function authenticate(
   }
   if (path === "auth/sender/options") {
     const from = address.parse(data.address);
-    const message = `Sign in to Shagun\nOrigin: ${appOrigin()}\nAddress: ${from}\nChain ID: 1874\nNonce: ${randomId()}\nExpires: ${new Date(Date.now() + 300_000).toISOString()}`;
+    const message = `Sign in to Chinki\nOrigin: ${appOrigin()}\nAddress: ${from}\nChain ID: 1874\nNonce: ${randomId()}\nExpires: ${new Date(Date.now() + 300_000).toISOString()}`;
     const challengeId = await saveChallenge(s.id, "sender", { message, address: from });
     return json({ challengeId, message });
   }
@@ -52,9 +52,9 @@ export async function authenticate(
     const options =
       mode === "register"
         ? await generateRegistrationOptions({
-            rpName: "Shagun",
+            rpName: "Chinki",
             rpID: rpID(),
-            userName: `Shagun ${s.id.slice(0, 8)}`,
+            userName: `Chinki ${s.id.slice(0, 8)}`,
             userID: new TextEncoder().encode(s.id),
             attestationType: "none",
             supportedAlgorithmIDs: [-7, -257],
@@ -104,7 +104,7 @@ export async function authenticate(
         counter: string;
         transports: string[];
       }>("SELECT * FROM credentials WHERE id=$1", [response.id]);
-      if (!c) throw new AppError("This passkey is not registered with Shagun.", 403);
+      if (!c) throw new AppError("This passkey is not registered with Chinki.", 403);
       const result = await verifyAuthenticationResponse({
         response,
         expectedChallenge: expected.challenge,

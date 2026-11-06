@@ -117,7 +117,7 @@ test("consumed and expired envelopes show denied states", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Claim gift" })).toHaveCount(0);
 });
 
-test("Leash Gifts entry redirects to Shagun and shared issuance is retired", async ({ page }) => {
+test("Leash Gifts entry redirects to Chinki and shared issuance is retired", async ({ page }) => {
   await page.goto("/gifts");
   await expect(page).toHaveURL("http://localhost:3100/dashboard");
   expect((await page.request.post("/api/sandbox/card")).status()).toBe(410);

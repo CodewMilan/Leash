@@ -124,7 +124,7 @@ function WidgetFlow() {
       <div className="panel">
         <div className="panel-heading">
           <div>
-            <h1 className="text-xl">Send a Shagun</h1>
+            <h1 className="text-xl">Send a Chinki</h1>
             {host && <p className="microcopy">from {host}</p>}
           </div>
           <Gift size={20} strokeWidth={1.5} />

@@ -9,7 +9,7 @@ export type Sender = {
   installed: boolean;
   /** Account the wallet currently exposes, or null when nothing is connected. */
   account: string | null;
-  /** Sender address of the signed-in Shagun session, or null when signed out. */
+  /** Sender address of the signed-in Chinki session, or null when signed out. */
   session: string | null;
   wallet: WalletOption | null;
   wallets: WalletOption[];

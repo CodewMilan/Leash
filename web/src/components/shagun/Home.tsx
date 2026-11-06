@@ -65,7 +65,7 @@ const CASES = [
   },
 ];
 const STEPS = [
-  ["Name the gift", "Amount, a note, and when it expires. You sign once in MetaMask; Shagun pays the gas."],
+  ["Name the gift", "Amount, a note, and when it expires. You sign once in MetaMask; Chinki pays the gas."],
   ["They open the envelope", "A tap or a private link. They confirm with a passkey, then claim the gift on their phone."],
   ["They get a prepaid card", "A prepaid dollar gift card loaded with exactly the gift. It is a Lithic sandbox card, so purchases are simulated; no real money moves."],
   ["The rest comes back", "When the gift expires, the card closes and the unspent USDT returns to you. An unclaimed gift returns in full."],
@@ -181,7 +181,7 @@ function StepVisual({ step, amount }: { step: number; amount: number }) {
       <div>
         <div className="flex aspect-[1.586] flex-col justify-between bg-black-00 p-5 text-white-00">
           <div className="flex items-start justify-between">
-            <span className="text-[20px] tracking-[-0.04em]">shagun</span>
+            <span className="text-[20px] tracking-[-0.04em]">chinki</span>
             <span className="bg-orange-00 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.08em] text-ink uppercase">Sandbox</span>
           </div>
           <p className="font-mono text-[18px] tracking-[0.12em]">•••• •••• •••• 4142</p>

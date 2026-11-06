@@ -88,7 +88,7 @@ export function walletMessage(error: unknown, fallback: string) {
     return "You cancelled the request in your wallet.";
   if (codes.includes(-32002)) return "Your wallet already has a request open. Check MetaMask.";
   if (codes.includes(4100))
-    return "MetaMask hasn't connected this account to Shagun. Open MetaMask, connect this account to the site, then try again.";
+    return "MetaMask hasn't connected this account to Chinki. Open MetaMask, connect this account to the site, then try again.";
   if (typeof wallet?.message === "string" && wallet.message) return wallet.message;
   return error instanceof Error && error.message ? error.message : fallback;
 }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         cards,
         authenticated: (await shopOwners(request)).length > 0,
         environment: "lithic-sandbox",
-        merchant: "Shagun sandbox shop",
+        merchant: "Chinki sandbox shop",
         gateway: "issuer-simulator",
       },
       { headers: privateHeaders },

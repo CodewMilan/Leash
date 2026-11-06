@@ -17,7 +17,7 @@ function Poster({ poster }: { poster: (typeof POSTERS)[number] }) {
     <div className={`flex h-[168px] flex-col justify-between p-3 ${poster.light ? "text-white-00" : "text-ink"}`} style={{ background: poster.bg }}>
       <span className="font-mono text-[10px] tracking-[0.08em] uppercase">{poster.k}</span>
       <span className="text-[32px] leading-none tracking-[-0.05em]">{poster.t}</span>
-      <span className="text-[13px]">shagun</span>
+      <span className="text-[13px]">chinki</span>
     </div>
   );
 }
@@ -104,7 +104,7 @@ export function Envelope({ amount, small = false }: { amount: string; small?: bo
         <div className="envelope-seal">
           <span className="block h-3 w-3 border border-ink" />
         </div>
-        <span className="envelope-brand">shagun</span>
+        <span className="envelope-brand">chinki</span>
       </div>
     </div>
   );

@@ -317,7 +317,7 @@ function RecipientWallet({ giftId, onAuthenticate }: Props) {
   return (
     <section
       className={`panel ${styles.wallet}`}
-      aria-label="Your Shagun prepaid gift card"
+      aria-label="Your Chinki prepaid gift card"
       data-card-state={state}
     >
       <div className={`panel-heading ${styles.heading}`}>
@@ -348,7 +348,7 @@ function RecipientWallet({ giftId, onAuthenticate }: Props) {
           <>
             <div ref={preview} className={styles.preview}>
               <CreditCard
-                company="Shagun"
+                company="Chinki"
                 type="gray-dark"
                 masked
                 cardNumber={card.lastFour!}

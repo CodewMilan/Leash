@@ -1,4 +1,6 @@
-# Shagun
+# Chinki
+
+Chinki (formerly Shagun) uses a rabbit mark and keeps existing deployed contract, database and session identifiers for compatibility.
 
 Prepaid fiat gift cards, paid in USDT. The sender pays for a Diwali gift in official test USDT on Whitechain without paying gas; the recipient claims it with a passkey and gets a prepaid dollar gift card (a Lithic sandbox virtual card) loaded with exactly the gift, with no wallet or crypto on their side. Unspent value returns to the sender. Built in the existing Next.js website and brand kit.
 
@@ -28,11 +30,11 @@ pnpm dev
 
 Open http://localhost:3000. Run `pnpm worker` from `web/` in a second terminal after configuring the vault and operational keys. The worker is required for claim confirmation, card issuance, spending settlement and expiry reconciliation. Secrets are read from environment variables. CLI scripts optionally load `web/.env.local`; it is ignored by git.
 
-Pages: `/` (landing), `/dashboard` (send/history/CSV), `/send` (the embeddable "Send a Shagun" popup), `/claim/[giftId]#secret` (recipient), and `/gifts/[giftId]` (authorized receipt), and `/shop` (recipient-authenticated sandbox purchases). `/gifts` redirects to the Shagun dashboard; the standalone Leash Gifts pass is retired. Unconfigured services produce setup/error states, not fabricated transactions.
+Pages: `/` (landing), `/dashboard` (send/history/CSV), `/send` (the embeddable "Send a Chinki" popup), `/claim/[giftId]#secret` (recipient), and `/gifts/[giftId]` (authorized receipt), and `/shop` (recipient-authenticated sandbox purchases). `/gifts` redirects to the Chinki dashboard; the standalone Leash Gifts pass is retired. Unconfigured services produce setup/error states, not fabricated transactions.
 
 ### Sender wallets
 
-Senders sign in with MetaMask. Without `NEXT_PUBLIC_PRIVY_APP_ID` the site talks to MetaMask directly (EIP-6963 discovery, falling back to `window.ethereum`), so no third-party setup is needed. Setting `NEXT_PUBLIC_PRIVY_APP_ID` switches to Privy's connect-wallet modal instead; then allow `http://localhost:3000` (and your deployed origin) in the Privy dashboard and enable MetaMask under external wallets. Add more wallets in `web/src/lib/wallets.ts`. Either way the wallet is only connected; Shagun's own signed challenge (`auth/sender/options` → `auth/sender/verify`) creates the sender session. The wallet is switched to Whitechain testnet (chain 1874) and asked to add it if missing. The sender signs once to sign in and once per gift (an EIP-3009 typed-data authorization); the relayer pays all gas. Fund the sender address with official test USDT first.
+Senders sign in with MetaMask. Without `NEXT_PUBLIC_PRIVY_APP_ID` the site talks to MetaMask directly (EIP-6963 discovery, falling back to `window.ethereum`), so no third-party setup is needed. Setting `NEXT_PUBLIC_PRIVY_APP_ID` switches to Privy's connect-wallet modal instead; then allow `http://localhost:3000` (and your deployed origin) in the Privy dashboard and enable MetaMask under external wallets. Add more wallets in `web/src/lib/wallets.ts`. Either way the wallet is only connected; Chinki's own signed challenge (`auth/sender/options` → `auth/sender/verify`) creates the sender session. The wallet is switched to Whitechain testnet (chain 1874) and asked to add it if missing. The sender signs once to sign in and once per gift (an EIP-3009 typed-data authorization); the relayer pays all gas. Fund the sender address with official test USDT first.
 
 ### Choosing a gift
 
@@ -48,13 +50,13 @@ Recipients see the chosen envelope and decrypt their personal note in the browse
 
 ### Embed the widget in another app
 
-Any site can add a "Send a Shagun" button. It opens `/send` in a popup; the sender connects a wallet and sends without leaving the host app. The host receives the gift ID, status and receipt URL through `postMessage`, scoped to its own origin. The private claim link stays in the popup with the sender.
+Any site can add a "Send a Chinki" button. It opens `/send` in a popup; the sender connects a wallet and sends without leaving the host app. The host receives the gift ID, status and receipt URL through `postMessage`, scoped to its own origin. The private claim link stays in the popup with the sender.
 
 ```html
-<div id="shagun"></div>
-<script src="http://localhost:3000/shagun.js"></script>
+<div id="chinki"></div>
+<script src="http://localhost:3000/chinki.js"></script>
 <script>
-  Shagun.button("#shagun", {
+  Chinki.button("#chinki", {
     app: "Diwali Desk",
     amount: "25",
     note: "Diwali bonus · Diwali Desk",
@@ -64,7 +66,7 @@ Any site can add a "Send a Shagun" button. It opens `/send` in a popup; the send
 </script>
 ```
 
-A runnable host app lives in `examples/diwali-desk/`: run `python3 -m http.server 4000` there and open http://localhost:4000 while `pnpm dev` is running. `Shagun.open(options)` opens the popup from your own button; `onReady`, `onGift`, `onClose` and `onError` callbacks are available.
+A runnable host app lives in `examples/diwali-desk/`: run `python3 -m http.server 4000` there and open http://localhost:4000 while `pnpm dev` is running. `Chinki.open(options)` opens the popup from your own button; `onReady`, `onGift`, `onClose` and `onError` callbacks are available.
 
 ## Verify and deploy to testnet
 
@@ -85,7 +87,7 @@ pnpm build
 E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
-## Shagun prepaid gift cards
+## Chinki prepaid gift cards
 
 New claims use card redemption. The recipient opens the private gift link, confirms a passkey and presents the private gift-link secret. After the on-chain claim confirms, the worker reserves one virtual card per gift and creates it paused with an exact lifetime budget: a $25 gift receives a 2,500-cent card limit; $51.50 receives 5,150 cents. Amounts must be whole cents. There is no fixed $100 sample pass or shared operator card in this journey.
 
@@ -106,13 +108,13 @@ pnpm worker
 
 The Phase 0 script saves webhook secrets into ignored `web/.env.local` without printing them. Restart running processes after it writes them. `/dev/card` remains a separate development diagnostic; its explicitly configured Phase 0 card is never reused for gifts.
 
-The recipient's claim page displays preparing/ready/closing/reconciliation states, gift budget, purchase holds, cleared spending and available funds. `/shop` derives payment cards from that recipient's passkey-authenticated Shagun session. Catalog prices are calculated on the server; purchases call Lithic's sandbox simulator and reconcile real provider transaction evidence. There are no real merchant purchases or bank transfers. Keep `LITHIC_DATA_DIR` (default `web/.data/lithic`) persistent for shop order recovery.
+The recipient's claim page displays preparing/ready/closing/reconciliation states, gift budget, purchase holds, cleared spending and available funds. `/shop` derives payment cards from that recipient's passkey-authenticated Chinki session. Catalog prices are calculated on the server; purchases call Lithic's sandbox simulator and reconcile real provider transaction evidence. There are no real merchant purchases or bank transfers. Keep `LITHIC_DATA_DIR` (default `web/.data/lithic`) persistent for shop order recovery.
 
 Signed ASA requests reserve available budget atomically, declining over-budget, unsupported or expired requests. Signed events are durably queued; the worker fetches current provider transactions and enqueues unique partial `spend` operations. Pending chain settlements remain visible as pending work. Unexpected credits/refunds or amounts outside the supported USD demo are frozen for reconciliation; the vault cannot reverse completed card spending.
 
 At expiry, the worker stops approvals and closes the card, then requires complete provider transaction reconciliation, zero holds and no unresolved settlement/event work before returning unused USDT. A gift whose card creation was never attempted can close without a provider card. Ambiguous issuance must recover first. Unclaimed gifts keep their permissionless expiry refund. Existing UPI claims retain their original payout work; new card claims never queue whole-gift cash-out.
 
-`/api/sandbox/card` and `/api/sandbox/session` return 410. Previously issued sample-card records remain on disk for operator recovery, but are not selectable by Shagun recipients.
+`/api/sandbox/card` and `/api/sandbox/session` return 410. Previously issued sample-card records remain on disk for operator recovery, but are not selectable by Chinki recipients.
 
 Use `pnpm exec playwright install chromium` once if no browser is installed. Browser tests isolate their server on port 3100 and a separate build directory. CI runs type/lint/tests, compilation, migrations, production build and browser checks without real provider credentials.
 
@@ -132,4 +134,13 @@ On testnet, relayer WBT comes from the faucet. The proposed production 0.5% USDT
 
 Demo sender accounts need prefunded test USDT. An unregistered envelope goes to its first passkey-authenticated claimant, which does not prevent theft before that claim. Handles, production funding/off-ramping, a complete chain event/reorg indexer, automatic transaction replacement, CRE and ENS are not implemented. Card reconciliation supports ordinary USD sandbox purchases; exceptional refunds/credits require operator reconciliation. World ID has been removed. Campaign limits are one gift per passkey, not one per unique person. The backend derives a keyed recipient commitment for the existing vault ABI and signs claim attestations. Production release requires independent review and the gates in the operations guide.
 
-The old device, merchant, Hedera and 0G modules are removed. Keep future work within the Shagun website.
+The old device, merchant, Hedera and 0G modules are removed. Keep future work within the Chinki website.
+
+
+## Vercel hackathon demo
+
+The public Chinki demo is https://chinki-bice.vercel.app. Vercel hosts the Next.js frontend. `API_PROXY_ORIGIN` routes API requests to a separate HTTPS backend; database credentials and operational keys stay on that backend. For this demo, the backend, PostgreSQL and durable worker run on the demo Mac. Keep the Mac awake, its network online, the worker running and the Cloudflare tunnel connected. This is temporary demo hosting, not an independent cloud backend.
+
+The backend uses `APP_URL=https://chinki-bice.vercel.app` and port 3002, with a separate `.next-demo` build. Local development on port 3000 retains its localhost origin and existing passkeys. Passkeys are origin-bound: a localhost passkey cannot open a newly deployed Vercel origin. New public gifts need a passkey registered on the public domain.
+
+Vercel production environment variables: `APP_URL` and `API_PROXY_ORIGIN` (HTTPS). The latter changes whenever the quick tunnel restarts and requires a new frontend deployment. No database or relayer secrets are copied to Vercel. The frontend build uses `tsconfig.build.json`; `pnpm check` retains the full local test/type checks. Existing `shagun` session/storage/contract identifiers remain compatible; the widget is also available as `/chinki.js` and `window.Chinki`, with the legacy SDK alias retained.

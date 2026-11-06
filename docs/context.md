@@ -3,9 +3,9 @@ cursor:
   subagentId: "bc-c80311ec-5056-53d1-9e6f-a4f97096dc61"
 ---
 
-# Shagun: knowledge base (crypto gift → Lithic sandbox virtual card)
+# Chinki: knowledge base (crypto gift → Lithic sandbox virtual card)
 
-"Shagun" is a working name. This file is the single source of truth for any teammate or AI agent on the gift project at ETHGlobal Mumbai.
+User decision Nov 7: the project is now named **Chinki**, with a rabbit logo. Existing Shagun contract names, storage keys and protocol identifiers stay compatible. This file is the single source of truth for any teammate or AI agent on the gift project at ETHGlobal Mumbai.
 
 Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:30 IST.
 

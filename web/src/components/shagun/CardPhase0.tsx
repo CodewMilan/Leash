@@ -71,7 +71,7 @@ export function CardPhase0() {
       <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-grey-04">Lithic · SANDBOX · Phase 0</p>
       <h1 className="text-[40px] leading-none tracking-[-0.05em]">Sandbox virtual card</h1>
       <p className="text-[15px] text-grey-04">
-        This card only works inside the Lithic sandbox. It cannot buy real goods. Card details render inside Lithic-hosted frames and never pass through Shagun&apos;s server.
+        This card only works inside the Lithic sandbox. It cannot buy real goods. Card details render inside Lithic-hosted frames and never pass through Chinki&apos;s server.
       </p>
       <section className="flex flex-col gap-5 border border-grey-02 bg-white-00 p-6" aria-live="polite">
         <div className="flex items-center justify-between font-mono text-[12px] uppercase tracking-[0.08em]">

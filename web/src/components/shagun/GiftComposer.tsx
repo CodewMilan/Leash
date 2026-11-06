@@ -337,7 +337,7 @@ export function GiftComposer({
           </h4>
           <p>
             {signedIn
-              ? "Your wallet asks for a USDT authorization. Shagun pays the network fee. After the transaction confirms, you’ll get a private link to share."
+              ? "Your wallet asks for a USDT authorization. Chinki pays the network fee. After the transaction confirms, you’ll get a private link to share."
               : "Sign in with MetaMask, then approve the gift. No network fee is charged to your wallet."}
           </p>
           <p>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Diwali Desk · Shagun widget demo</title>
+    <title>Diwali Desk · Chinki widget demo</title>
     <style>
       body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #fbf7f0; color: #1a1a1a; }
       main { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
@@ -16,10 +16,10 @@
   <body>
     <main>
       <small>DIWALI DESK · TEAM PORTAL · DEMO HOST APP</small>
-      <h1>Send your team a Diwali Shagun</h1>
+      <h1>Send your team a Diwali Chinki</h1>
       <p>This page is a separate app. It adds gifting with the snippet below and never touches a wallet or a key.</p>
       <div class="card">
-        <div id="shagun"></div>
+        <div id="chinki"></div>
         <p id="log">Waiting for a gift…</p>
       </div>
       <div class="card">
@@ -28,10 +28,10 @@
       </div>
     </main>
 
-    <!-- Shagun integration starts here -->
-    <script src="http://localhost:3000/shagun.js"></script>
+    <!-- Chinki integration starts here -->
+    <script src="http://localhost:3000/chinki.js"></script>
     <script id="integration">
-      Shagun.button("#shagun", {
+      Chinki.button("#chinki", {
         app: "Diwali Desk",
         amount: "25",
         note: "Diwali bonus · Diwali Desk",
@@ -42,15 +42,15 @@
             `Receipt: ${gift.receiptUrl}`;
         },
         onClose() {
-          console.log("Shagun window closed");
+          console.log("Chinki window closed");
         },
       });
     </script>
-    <!-- Shagun integration ends here -->
+    <!-- Chinki integration ends here -->
 
     <script>
       document.getElementById("snippet").textContent =
-        '<div id="shagun"></div>\n<script src="http://localhost:3000/shagun.js"><\/script>\n<script>' +
+        '<div id="chinki"></div>\n<script src="http://localhost:3000/chinki.js"><\/script>\n<script>' +
         document.getElementById("integration").textContent + "<\/script>";
     </script>
   </body>

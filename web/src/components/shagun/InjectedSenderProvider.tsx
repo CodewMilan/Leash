@@ -78,7 +78,7 @@ async function switchToWhitechain(provider: Injected) {
 
 /**
  * Sender wallet connection straight through MetaMask, used when no Privy app ID is configured.
- * Shagun's own signed challenge still creates the session, exactly as with Privy.
+ * Chinki's own signed challenge still creates the session, exactly as with Privy.
  */
 export function InjectedSenderProvider({ children }: { children: ReactNode }) {
   const { provider, searched } = useMetaMask();

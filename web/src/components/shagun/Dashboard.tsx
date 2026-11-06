@@ -25,7 +25,7 @@ import {
 const ONBOARDING = [
   [
     "Connect MetaMask",
-    "Shagun adds Whitechain testnet to your wallet and asks you to sign in. No gas, no transaction.",
+    "Chinki adds Whitechain testnet to your wallet and asks you to sign in. No gas, no transaction.",
   ],
   [
     "Choose a card",
@@ -33,7 +33,7 @@ const ONBOARDING = [
   ],
   [
     "Approve and share",
-    "Approve once in your wallet. Shagun pays the network fee, then gives you a private link to share.",
+    "Approve once in your wallet. Chinki pays the network fee, then gives you a private link to share.",
   ],
 ];
 export function Dashboard() {
