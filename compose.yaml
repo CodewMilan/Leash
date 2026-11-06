@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:54329:5432"
+    environment:
+      POSTGRES_USER: shagun
+      POSTGRES_PASSWORD: ${SHAGUN_DEV_DB_PASSWORD:-shagun}
+      POSTGRES_DB: shagun
+    volumes:
+      - shagun-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shagun -d shagun"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  shagun-postgres:

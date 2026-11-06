@@ -1,3 +1,4 @@
+// Immutable after application. Add a new numbered migration for future schema changes.
 export const schema = `
 CREATE TABLE IF NOT EXISTS sessions (
  id TEXT PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE, sender TEXT, credential_id TEXT,
@@ -43,4 +44,5 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 CREATE TABLE IF NOT EXISTS gas_spending (
  day TEXT PRIMARY KEY, reserved NUMERIC(78,0) NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS service_heartbeats (name TEXT PRIMARY KEY, checked_at TIMESTAMPTZ NOT NULL);
 `;

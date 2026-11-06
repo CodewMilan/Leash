@@ -1,7 +1,7 @@
 import { signRequest } from "@worldcoin/idkit-core/signing";
 import { hashSignal } from "@worldcoin/idkit-core/hashing";
-import { AppError, required, worldAction, worldEnvironment } from "./config";
-import { humanCommitment } from "./crypto";
+import { AppError, required, worldAction, worldEnvironment } from "../config";
+import { humanCommitment } from "../security/crypto";
 
 export function worldRequest(signal: string) {
   const signed = signRequest({ signingKeyHex: required("WORLD_SIGNING_KEY"), action: worldAction() });

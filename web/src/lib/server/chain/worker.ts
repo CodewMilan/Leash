@@ -1,11 +1,11 @@
 import { Contract, Interface, JsonRpcProvider, Transaction, Wallet, keccak256, parseEther } from "ethers";
 import { randomUUID } from "node:crypto";
-import { claimTypes, vaultAbi, type GiftTerms } from "../chain";
-import { AppError, officialToken, required, rpcUrl, vaultAddress } from "./config";
-import { decrypt, encrypt, randomId, sha256 } from "./crypto";
-import { sql, withWorkerLock } from "./db";
-import { executePayout } from "./payouts";
-import type { GiftRow } from "./gifts";
+import { claimTypes, vaultAbi, type GiftTerms } from "../../chain";
+import { AppError, officialToken, required, rpcUrl, vaultAddress } from "../config";
+import { decrypt, encrypt, randomId, sha256 } from "../security/crypto";
+import { sql, withWorkerLock } from "../db";
+import { executePayout } from "../payouts/razorpay";
+import type { GiftRow } from "../gifts/repository";
 
 type Job = { id: string; gift_id: string; kind: "create" | "claim" | "settle" | "refund"; payload: string; raw_tx: string | null; tx_hash: string | null; attempts: number };
 const states = ["missing", "sent", "claimed", "settled", "returned"];
@@ -45,7 +45,12 @@ async function processJob(job: Job, provider: JsonRpcProvider, signer: Wallet) {
   if (job.raw_tx) raw = decrypt<string>(job.raw_tx);
   else {
     const data = await prepareCall(job, signer);
-    const estimated = await provider.estimateGas({ from: signer.address, to: vaultAddress(), data });
+    let estimated: bigint;
+    try { estimated = await provider.estimateGas({ from: signer.address, to: vaultAddress(), data }); }
+    catch (error) {
+      if ((error as { code?: string }).code === "CALL_EXCEPTION") throw new AppError("The vault rejected this operation. Check gift status and account funding.");
+      throw error;
+    }
     const gasLimit = estimated * 12n / 10n;
     const cap = BigInt(process.env.MAX_GAS_PER_TX || "600000");
     if (gasLimit > cap) throw new AppError("Transaction exceeds the relayer gas limit.");
@@ -53,10 +58,12 @@ async function processJob(job: Job, provider: JsonRpcProvider, signer: Wallet) {
     const gasPrice = fee.gasPrice;
     if (!gasPrice || gasPrice > BigInt(process.env.MAX_GAS_PRICE_WEI || "1000000000000")) throw new AppError("Network gas price exceeds the relayer budget.");
     const day = new Date().toISOString().slice(0, 10);
-    const budget = parseEther(process.env.MAX_DAILY_GAS_WBT || "0.1");
+    const totalBudget = parseEther(process.env.MAX_DAILY_GAS_WBT || "0.1");
+    const budget = job.kind === "refund" ? totalBudget : totalBudget * 9n / 10n;
+    if (gasLimit * gasPrice > budget) throw new AppError("Transaction exceeds the relayer daily budget.", 503);
     const reserved = await sql(`INSERT INTO gas_spending(day,reserved) VALUES($1,$2)
       ON CONFLICT(day) DO UPDATE SET reserved=gas_spending.reserved+$2 WHERE gas_spending.reserved+$2<=$3 RETURNING day`, [day, String(gasLimit * gasPrice), String(budget)]);
-    if (gasLimit * gasPrice > budget || !reserved.length) throw new AppError("The relayer daily budget is exhausted.");
+    if (!reserved.length) throw new AppError("The relayer daily budget is exhausted.", 503);
     const nonce = await provider.getTransactionCount(signer.address, "pending");
     raw = await signer.signTransaction({ chainId: 1874, type: 0, nonce, gasLimit, gasPrice, to: vaultAddress(), data, value: 0 });
     const hash = keccak256(raw);
@@ -73,6 +80,11 @@ async function processJob(job: Job, provider: JsonRpcProvider, signer: Wallet) {
     receipt = await provider.waitForTransaction(hash, Number(process.env.CHAIN_CONFIRMATIONS || "1"), 30_000);
   }
   if (!receipt) throw new Error("ConfirmationPending");
+  const confirmations = Number(process.env.CHAIN_CONFIRMATIONS || "1");
+  if (await receipt.confirmations() < confirmations) {
+    receipt = await provider.waitForTransaction(hash, confirmations, 30_000);
+    if (!receipt) throw new Error("ConfirmationPending");
+  }
   if (receipt.status !== 1) throw new AppError("The chain rejected this operation.");
   if (receipt.to?.toLowerCase() !== vaultAddress().toLowerCase()) throw new AppError("Receipt recipient did not match vault.");
   const tx = Transaction.from(raw);
@@ -131,6 +143,7 @@ export async function workerTick() {
       }
       await sql("DELETE FROM challenges WHERE expires_at<now()-interval '1 day'");
       await sql("DELETE FROM rate_limits WHERE resets_at<now()-interval '1 day'");
+      await sql("INSERT INTO service_heartbeats(name,checked_at) VALUES('worker',now()) ON CONFLICT(name) DO UPDATE SET checked_at=now()");
       return { processed: jobs.length, payoutsChecked: payouts.length };
     } finally { provider.destroy(); }
   });

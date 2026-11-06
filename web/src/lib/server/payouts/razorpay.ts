@@ -1,8 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { AppError, required } from "./config";
-import { decrypt } from "./crypto";
-import { sql } from "./db";
+import { AppError, required } from "../config";
+import { decrypt } from "../security/crypto";
+import { sql } from "../db";
+import { readLimitedBody } from "../http/response";
 
 const payoutStatuses = z.enum(["queued", "pending", "processing", "processed", "reversed", "failed", "rejected", "cancelled"]);
 type PayoutStatus = z.infer<typeof payoutStatuses>;
@@ -59,8 +60,7 @@ export async function executePayout(giftId: string) {
   await recordPayoutStatus(payout.id, payout.status);
 }
 export async function receiveWebhook(request: Request) {
-  const raw = await request.text();
-  if (Buffer.byteLength(raw) > 64_000) throw new AppError("Webhook is too large.", 413);
+  const raw = await readLimitedBody(request, 64_000);
   const signature = request.headers.get("x-razorpay-signature") || "";
   const expected = createHmac("sha256", required("RAZORPAYX_WEBHOOK_SECRET")).update(raw).digest("hex");
   if (!/^[a-f0-9]{64}$/i.test(signature) || !timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) throw new AppError("Invalid webhook signature.", 403);

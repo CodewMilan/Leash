@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shagun web application
 
-## Getting Started
-
-First, run the development server:
+The runnable Next.js application and Node worker live here. Start with the repository [README](../readme.md), [architecture](../docs/architecture.md), and [developer guide](../docs/development.md).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install --frozen-lockfile
+cp .env.example .env.local
+pnpm db:migrate
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run `pnpm worker` separately once chain roles and provider configuration are ready. Both processes use the same PostgreSQL database and encryption key.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | Purpose |
+| --- | --- |
+| `pnpm check` | Type check, lint, and meaningful contract/API tests |
+| `pnpm contracts:build` | Vault ABI/bytecode and source-verification input |
+| `pnpm chain:check` | Real chain 1874, token code, decimals and signing domain |
+| `pnpm contracts:deploy -- --confirm-testnet` | Explicit real testnet deployment |
+| `pnpm db:migrate` | Locked, transactional, versioned schema migration |
+| `pnpm worker` | Durable chain/payout/refund processor |
+| `pnpm build` / `pnpm start` | Build / serve the production web bundle |
+| `pnpm test:e2e` | Disposable local database and isolated browser checks |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Browser tests require `E2E_DATABASE_URL` pointing to a disposable localhost PostgreSQL database and a Playwright Chromium installation. They do not connect to real payment services. Set `SHAGUN_BUILD_DIR=.next-build` for a build that must coexist with another developer's `pnpm dev`.
 
-## Learn More
+Server code stays under `src/lib/server/`, organized by domain. Pages and UI never import secrets-bearing server modules. SQL migrations live in `../db/migrations/`; contracts live in `../contracts/`. Secret values only enter through the environment.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The UPI integration is **RazorpayX test mode**. Configuration presence does not mean a service has been verified end to end. See the [production release gate](../docs/operations.md) before deploying anything that moves real money.

@@ -1,0 +1,57 @@
+name: Shagun checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: shagun
+          POSTGRES_PASSWORD: shagun_ci_local_only
+          POSTGRES_DB: shagun_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U shagun -d shagun_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: web
+    env:
+      DATABASE_URL: postgres://shagun:shagun_ci_local_only@localhost:5432/shagun_ci
+      E2E_DATABASE_URL: postgres://shagun:shagun_ci_local_only@localhost:5432/shagun_ci
+      APP_URL: http://localhost:3100
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm contracts:build
+      - run: pnpm db:migrate
+      - run: pnpm db:migrate
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: web/test-results/
+          retention-days: 7

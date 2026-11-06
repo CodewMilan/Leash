@@ -10,7 +10,12 @@ export function required(name: string): string {
   if (!value) throw new AppError(`Service setup is incomplete (${name}).`, 503);
   return value;
 }
-export function appOrigin() { return new URL(process.env.APP_URL || "http://localhost:3000").origin; }
+export function appOrigin() {
+  const value = process.env.APP_URL || (process.env.NODE_ENV === "production" ? required("APP_URL") : "http://localhost:3000");
+  const url = new URL(value);
+  if (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname)) throw new AppError("APP_URL requires HTTPS outside localhost.", 503);
+  return url.origin;
+}
 export function vaultAddress() {
   const address = required("VAULT_ADDRESS");
   if (!isAddress(address)) throw new AppError("Vault configuration is invalid.", 503);

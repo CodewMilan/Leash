@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
-import { required, AppError } from "./config";
+import { required, AppError } from "../config";
 
 export const randomId = () => randomBytes(32).toString("hex");
 export const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
