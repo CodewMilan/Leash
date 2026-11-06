@@ -18,9 +18,15 @@ type Announcement = CustomEvent<{ info: { rdns: string }; provider: Injected }>;
 const CHAIN_HEX = toQuantity(WHITECHAIN.id);
 const METAMASK = walletOption("metamask")!;
 
+/** Wallet error code, whether raw from the provider or wrapped by ethers (`error` / `info.error`). */
 function rpcCode(error: unknown) {
-  const e = error as { code?: unknown; data?: { originalError?: { code?: unknown } } };
-  return e?.data?.originalError?.code ?? e?.code;
+  const e = error as {
+    code?: unknown;
+    error?: { code?: unknown };
+    info?: { error?: { code?: unknown } };
+    data?: { originalError?: { code?: unknown } };
+  };
+  return e?.data?.originalError?.code ?? e?.error?.code ?? e?.info?.error?.code ?? e?.code;
 }
 
 /** Finds MetaMask through EIP-6963, falling back to the legacy `window.ethereum` injection. */
@@ -110,6 +116,8 @@ export function InjectedSenderProvider({ children }: { children: ReactNode }) {
       throw new Error(
         "MetaMask isn't installed in this browser. Install it, then reload this page.",
       );
+    // Switch first so account approval also covers Whitechain.
+    await switchToWhitechain(provider);
     const accounts: string[] = await provider.request({ method: "eth_requestAccounts" });
     if (!accounts[0]) throw new Error("Your wallet did not share an account.");
     await api("session", {});

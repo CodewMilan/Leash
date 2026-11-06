@@ -2,9 +2,17 @@ import type { Eip1193Provider } from "ethers";
 
 function unauthorized(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const value = error as { code?: unknown; error?: unknown; data?: { originalError?: unknown } };
+  const value = error as {
+    code?: unknown;
+    error?: unknown;
+    info?: { error?: unknown };
+    data?: { originalError?: unknown };
+  };
   return (
-    value.code === 4100 || unauthorized(value.error) || unauthorized(value.data?.originalError)
+    value.code === 4100 ||
+    unauthorized(value.error) ||
+    unauthorized(value.info?.error) ||
+    unauthorized(value.data?.originalError)
   );
 }
 

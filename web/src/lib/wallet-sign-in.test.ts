@@ -15,6 +15,14 @@ describe("wallet sign-in authorization", () => {
     ]);
     expect(signIn).toHaveBeenCalledTimes(2);
   });
+  it("recovers ethers info.error authorization failures", async () => {
+    const request = vi.fn().mockResolvedValue([]);
+    const signIn = vi
+      .fn()
+      .mockRejectedValueOnce({ code: "UNKNOWN_ERROR", info: { error: { code: 4100 } } })
+      .mockResolvedValueOnce("account");
+    await expect(withWalletAuthorization({ request }, signIn)).resolves.toBe("account");
+  });
   it("does not retry a rejected signature", async () => {
     const request = vi.fn();
     const error = { code: 4001 };
