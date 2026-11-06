@@ -1,18 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, Check, Copy, Gift } from "lucide-react";
-import QRCode from "qrcode";
+import { ArrowUpRight, Gift } from "lucide-react";
 import { tokenAmount } from "@/lib/amounts";
 import { api } from "@/lib/client-api";
 import type { AppStatus, GiftView } from "@/lib/types";
 import { useSender } from "./SenderContext";
-import { claimLinkFor, walletMessage } from "./giftFlow";
+import { walletMessage } from "./giftFlow";
 import { GiftComposer, useGiftDraft } from "./GiftComposer";
+import { ClaimLinkPanel } from "./ClaimLinkPanel";
+import { useClaimLink } from "./useClaimLink";
 import { AppEnvelope } from "./AppEnvelope";
-import { ReceiptTimeline, StatusBadge, TestBanner } from "./Shared";
+import { ReceiptTimeline, TestBanner } from "./Shared";
 
 export function SendWidget() {
   return <WidgetFlow />;
@@ -44,11 +44,9 @@ function WidgetFlow() {
   const from = sender.session;
   const [balance, setBalance] = useState<string | null>(null);
   const [gift, setGift] = useState<GiftView | null>(null);
-  const [claimLink, setClaimLink] = useState("");
-  const [qr, setQr] = useState("");
+  const { link: claimLink, qr } = useClaimLink(gift);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const post = useCallback(
     (message: Record<string, unknown>) => {
@@ -85,26 +83,26 @@ function WidgetFlow() {
     });
   }, [gift, post]);
   useEffect(() => {
-    if (!gift || !["pending", "claimed"].includes(gift.status)) return;
+    if (!gift || !["pending", "sent", "claimed", "settled"].includes(gift.status)) return;
+    let active = true;
+    let fetching = false;
     const timer = window.setInterval(() => {
+      if (fetching) return;
+      fetching = true;
       api<GiftView>(`gifts/${gift.id}`)
         .then((next) => {
-          if (next.status !== gift.status || next.createdTx !== gift.createdTx) setGift(next);
+          if (active) setGift((current) => (current?.id === gift.id ? next : current));
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          fetching = false;
+        });
     }, 3_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [gift]);
-  useEffect(() => {
-    if (!gift?.createdTx || gift.status !== "sent") return;
-    const link = claimLinkFor(gift.id);
-    if (!link) return;
-    queueMicrotask(() => setClaimLink(link));
-    QRCode.toDataURL(link, { width: 240, margin: 2, errorCorrectionLevel: "M" })
-      .then(setQr)
-      .catch(() => {});
-  }, [gift?.id, gift?.createdTx, gift?.status]);
-
   async function connect(walletId: string) {
     setBusy("Connecting your wallet…");
     setError("");
@@ -118,9 +116,9 @@ function WidgetFlow() {
   }
 
   const signedIn = from !== null && from === sender.account;
-  const ready = !!status?.services
-    .filter((s) => ["Gift storage", "Whitechain"].includes(s.name))
-    .every((s) => s.ready);
+  const ready = ["Gift storage", "Whitechain"].every((name) =>
+    status?.services.some((service) => service.name === name && service.ready),
+  );
   return (
     <main id="main" className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
       <div className="panel">
@@ -134,57 +132,11 @@ function WidgetFlow() {
         <TestBanner />
         {gift ? (
           <div className="panel-body">
-            <AppEnvelope amount={tokenAmount(gift.amount, 0)} design={gift.design} />
-            <div className="mb-4 flex items-center justify-between">
-              <p className="mono">${tokenAmount(gift.amount)}</p>
-              <StatusBadge gift={gift} />
-            </div>
-            <ReceiptTimeline gift={gift} />
-            {claimLink && gift.status === "sent" && (
-              <>
-                <div className="qr-wrap">
-                  {qr && (
-                    <Image
-                      src={qr}
-                      alt="QR code to claim this gift"
-                      width={180}
-                      height={180}
-                      unoptimized
-                    />
-                  )}
-                </div>
-                <label className="field-label" htmlFor="widget-claim-link">
-                  ENVELOPE LINK · KEEP PRIVATE
-                </label>
-                <div className="claim-link">
-                  <input
-                    id="widget-claim-link"
-                    className="field-input"
-                    value={claimLink}
-                    readOnly
-                  />
-                  <button
-                    className="button dark small"
-                    type="button"
-                    aria-label="Copy envelope link"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(claimLink);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      } catch {
-                        setError("Copy the envelope link from the field above.");
-                      }
-                    }}
-                  >
-                    {copied ? <Check size={18} /> : <Copy size={18} />}
-                  </button>
-                </div>
-                <p className="field-hint">
-                  Share it with the person you are gifting. Unclaimed envelopes return to you.
-                </p>
-              </>
-            )}
+            <ClaimLinkPanel key={gift.id} gift={gift} link={claimLink} qr={qr} />
+            <details>
+              <summary className="text-link">View gift journey</summary>
+              <ReceiptTimeline gift={gift} />
+            </details>
             {(gift.error || error) && (
               <p role="alert" className="notice error mt-4">
                 {gift.error || error}
@@ -204,8 +156,6 @@ function WidgetFlow() {
                 type="button"
                 onClick={() => {
                   setGift(null);
-                  setClaimLink("");
-                  setQr("");
                 }}
               >
                 Send another
@@ -257,6 +207,11 @@ function WidgetFlow() {
               balance={balance}
               draft={draft}
               ready={ready}
+              onRefreshBalance={() => {
+                api<{ balance: string }>("balance")
+                  .then((r) => setBalance(r.balance))
+                  .catch(() => setBalance(null));
+              }}
               campaignLocked={campaignLocked}
               showPreview
               onSent={setGift}

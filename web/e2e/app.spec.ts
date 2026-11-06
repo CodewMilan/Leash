@@ -35,10 +35,7 @@ test("dashboard is usable at phone and desktop widths without invented gifts", a
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: "A little goes a long way." })).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Install MetaMask to send", exact: true }),
-    ).toHaveAttribute("href", "https://metamask.io/download");
-    await expect(page.getByRole("button", { name: "Review gift", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Review gift", exact: true })).toBeVisible();
     await expect(page.getByText("Recipient cards run in sandbox", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "$51", exact: true }).click();
     await expect(page.getByLabel("GIFT AMOUNT · USDT")).toHaveValue("51");
@@ -73,12 +70,12 @@ test("a real browser passkey is verified server-side and its assertion cannot be
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`/claim/${gift.id}#${gift.secret}`);
   await expect(page.getByRole("heading", { name: "A little something for you." })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Claim gift" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Claim gift" })).toHaveCount(0);
   const verified = page.waitForResponse((r) => r.url().endsWith("/api/auth/passkey/verify"));
   await page.getByRole("button", { name: "Create a passkey" }).click();
   const result = await verified;
   expect(result.status()).toBe(200);
-  await expect(page.getByText("Device confirmed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Passkey confirmed", { exact: true })).toBeVisible();
   const replay = await page.request.post("/api/auth/passkey/verify", {
     headers: { origin: "http://localhost:3100" },
     data: result.request().postDataJSON(),
@@ -88,9 +85,7 @@ test("a real browser passkey is verified server-side and its assertion cannot be
   const claiming = page.waitForResponse((r) => r.url().endsWith(`/api/gifts/${gift.id}/claim`));
   await page.getByRole("button", { name: "Claim gift" }).click();
   expect((await claiming).status()).toBe(202);
-  await expect(
-    page.getByText("Your claim is waiting for on-chain confirmation.", { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Confirming your claim" })).toBeVisible();
   const [claimRow] = (
     await db.query("SELECT redemption,claim_session FROM gifts WHERE id=$1", [gift.id])
   ).rows;

@@ -1,0 +1,188 @@
+.composer {
+  min-width: 0;
+}
+.progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.progress li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.progress li > span {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 10px;
+}
+.progress li.currentStep {
+  color: var(--foreground);
+}
+.currentStep > span {
+  background: var(--foreground);
+  color: var(--background);
+  border-color: var(--foreground);
+}
+.progress button {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.progress button:disabled {
+  cursor: wait;
+}
+.fields {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.reviewHeading {
+  font-size: 27px;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0 0 10px;
+}
+.reviewHeading:focus {
+  outline: none;
+}
+.intro {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.fieldError {
+  font-size: 12px;
+  color: var(--color-red-00);
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.optional {
+  border-block: 1px solid var(--border);
+}
+.optional summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 0;
+  font-size: 13px;
+  list-style: none;
+}
+.optional summary::-webkit-details-marker {
+  display: none;
+}
+.optional summary > span {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.optional summary svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.optional[open] summary svg {
+  transform: rotate(180deg);
+}
+.optionalFields {
+  padding: 6px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.approvalNote {
+  background: var(--color-grey-01);
+  padding: 18px;
+}
+.approvalNote h4 {
+  font-size: 15px;
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+.approvalNote p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.approvalNote p + p {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+}
+.actions {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.actions > :last-child {
+  min-width: 160px;
+}
+.composer [aria-invalid="true"] {
+  border-color: var(--color-red-00);
+}
+.composer button:disabled {
+  cursor: not-allowed;
+}
+.composer [role="alert"]:focus {
+  outline: 2px solid var(--color-red-00);
+  outline-offset: 3px;
+}
+@media (max-width: 420px) {
+  .progress li {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 11px;
+    gap: 6px;
+  }
+  .actions {
+    flex-direction: column-reverse;
+  }
+  .actions > :not(legend) {
+    width: 100%;
+  }
+  .optional summary {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .optional summary svg {
+    transition: none;
+  }
+}
+
+.composer :global(.review-list) > div {
+  min-width: 0;
+}
+.composer :global(.review-list) dt {
+  flex: 0 0 42%;
+}
+.composer :global(.review-list) dd {
+  min-width: 0;
+  max-width: 58%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.composer :global(.review-note) {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

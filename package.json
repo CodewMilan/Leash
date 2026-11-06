@@ -3,5 +3,8 @@
   "private": true,
   "scripts": {
     "check": "pnpm -C web check"
+  },
+  "dependencies": {
+    "tailwind-merge": "^3.7.0"
   }
 }

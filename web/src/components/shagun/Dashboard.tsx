@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, Check, Copy, Download, Gift, LogOut, RefreshCw } from "lucide-react";
-import QRCode from "qrcode";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Download, Gift, LogOut, RefreshCw } from "lucide-react";
 import { tokenAmount } from "@/lib/amounts";
 import { api } from "@/lib/client-api";
 import type { AppStatus, GiftView } from "@/lib/types";
 import { useSender } from "./SenderContext";
 import { claimLinkFor, forgetEnvelopes, walletMessage } from "./giftFlow";
 import { GiftComposer, useGiftDraft } from "./GiftComposer";
+import { ClaimLinkPanel } from "./ClaimLinkPanel";
+import { useClaimLink } from "./useClaimLink";
 import { AppEnvelope } from "./AppEnvelope";
 import {
   EmptyGifts,
@@ -48,25 +48,50 @@ export function Dashboard() {
   const from = sender.session;
   const [balance, setBalance] = useState<string | null>(null);
   const [gifts, setGifts] = useState<GiftView[]>([]);
-  const [selected, setSelected] = useState<GiftView | null>(null);
-  const [claimLink, setClaimLink] = useState("");
-  const [qr, setQr] = useState("");
+  const [selectedGift, setSelected] = useState<GiftView | null>(null);
+  const [stateOwner, setStateOwner] = useState(from);
+  const activeOwner = useRef(from);
+  const selected = stateOwner === from ? selectedGift : null;
+  const { link: claimLink, qr } = useClaimLink(selected);
+  const selectedInitial = useRef(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
-  const [copied, setCopied] = useState(false);
   const refresh = useCallback(async () => {
     if (!from) return;
     try {
       const result = await api<{ gifts: GiftView[] }>("gifts");
+      if (activeOwner.current !== from) return;
       setGifts(result.gifts);
       setHistoryError("");
+      const chooseInitial = !selectedInitial.current;
       setSelected((current) =>
-        current ? result.gifts.find((g) => g.id === current.id) || current : null,
+        current
+          ? result.gifts.find((g) => g.id === current.id) || null
+          : chooseInitial
+            ? result.gifts.find((g) => g.status === "sent" && !!claimLinkFor(g.id)) || null
+            : null,
       );
+      selectedInitial.current = true;
     } catch (e) {
+      if (activeOwner.current !== from) return;
       setHistoryError(e instanceof Error ? e.message : "Could not refresh your gifts.");
     }
+  }, [from]);
+  useEffect(() => {
+    activeOwner.current = from;
+    selectedInitial.current = false;
+    queueMicrotask(() => {
+      if (activeOwner.current === from) {
+        setSelected(null);
+        setGifts([]);
+        setStateOwner(from);
+        setBalance(null);
+        setHistoryError("");
+        setConfirmLogout(false);
+      }
+    });
   }, [from]);
   useEffect(() => {
     api<AppStatus>("status")
@@ -85,21 +110,16 @@ export function Dashboard() {
   }, [refresh]);
   const loadBalance = useCallback(() => {
     api<{ balance: string }>("balance")
-      .then((r) => setBalance(r.balance))
-      .catch(() => setBalance(null));
-  }, []);
+      .then((r) => {
+        if (activeOwner.current === from) setBalance(r.balance);
+      })
+      .catch(() => {
+        if (activeOwner.current === from) setBalance(null);
+      });
+  }, [from]);
   useEffect(() => {
     if (from) loadBalance();
   }, [from, loadBalance]);
-  useEffect(() => {
-    if (!selected?.createdTx || selected.status !== "sent") return;
-    const link = claimLinkFor(selected.id);
-    if (!link) return;
-    queueMicrotask(() => setClaimLink(link));
-    QRCode.toDataURL(link, { width: 240, margin: 2, errorCorrectionLevel: "M" })
-      .then(setQr)
-      .catch(() => {});
-  }, [selected?.id, selected?.createdTx, selected?.status]);
   async function connect(walletId: string) {
     setBusy("Connecting your wallet…");
     setError("");
@@ -116,19 +136,18 @@ export function Dashboard() {
       await sender.logout();
       setGifts([]);
       setSelected(null);
-      setClaimLink("");
-      setQr("");
       forgetEnvelopes();
+      setConfirmLogout(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not sign out.");
     }
   }
   const signedIn = from !== null && from === sender.account;
-  const history = from ? gifts : [];
+  const history = from && stateOwner === from ? gifts : [];
   const mismatch = from !== null && sender.account !== null && from !== sender.account;
-  const ready = !!status?.services
-    .filter((s) => ["Gift storage", "Whitechain"].includes(s.name))
-    .every((s) => s.ready);
+  const ready = ["Gift storage", "Whitechain"].every((name) =>
+    status?.services.some((service) => service.name === name && service.ready),
+  );
   const walletId = sender.wallet?.id || sender.wallets[0]?.id;
   return (
     <main id="main" className="app-shell enter">
@@ -145,12 +164,25 @@ export function Dashboard() {
                 {sender.wallet ? `${sender.wallet.label} · ` : ""}
                 {from.slice(0, 6)}…{from.slice(-4)} · ${tokenAmount(balance)}
               </span>
-              <button className="button secondary small" aria-label="Sign out" onClick={logout}>
+              <button
+                className="button secondary small"
+                aria-label="Sign out"
+                onClick={() => {
+                  if (gifts.some((g) => g.status === "sent" && !!claimLinkFor(g.id)))
+                    setConfirmLogout(true);
+                  else void logout();
+                }}
+              >
                 <LogOut size={16} />
               </button>
             </>
           ) : sender.ready && !sender.installed ? (
-            <a className="button dark small" href={sender.wallets[0]?.installUrl} target="_blank" rel="noreferrer">
+            <a
+              className="button dark small"
+              href={sender.wallets[0]?.installUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
               Install MetaMask
               <ArrowUpRight size={16} />
             </a>
@@ -173,6 +205,24 @@ export function Dashboard() {
         </div>
       </div>
       <TestBanner />
+      {confirmLogout && (
+        <div className="notice mb-4" role="alert">
+          <strong>Save your claim links before signing out.</strong>
+          <p>
+            Signing out clears the private links stored in this tab. Download or copy any unclaimed
+            gift link first.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button className="button dark small" onClick={() => setConfirmLogout(false)}>
+              Keep my links
+            </button>
+            <button className="button secondary small" onClick={() => void logout()}>
+              Sign out and clear links
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="notice error mb-4" role="alert">
           {error}
@@ -202,30 +252,42 @@ export function Dashboard() {
       )}
       <div className="dashboard-grid">
         <section className="panel">
-          <div className="panel-heading">
-            <h2>Put a little love in it.</h2>
-            <Gift size={20} strokeWidth={1.5} />
-          </div>
-          <GiftComposer
-            sender={sender}
-            from={from}
-            balance={balance}
-            draft={draft}
-            ready={ready}
-            onSent={(gift) => {
-              setClaimLink("");
-              setQr("");
-              setSelected(gift);
-              void refresh();
-              loadBalance();
-            }}
-          />
-          {!signedIn && (
-            <p className="microcopy px-6 pb-6">
-              {sender.configured
-                ? "You sign twice in total: once to sign in, once per gift. Neither costs gas."
-                : "Wallet sign-in is being set up. You can preview a card while services are connected."}
-            </p>
+          {selected ? (
+            <>
+              <ClaimLinkPanel key={selected.id} gift={selected} link={claimLink} qr={qr} />
+              <div className="panel-body pt-0">
+                <button
+                  className="button secondary full"
+                  onClick={() => {
+                    selectedInitial.current = true;
+                    setSelected(null);
+                  }}
+                >
+                  Create another gift
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="panel-heading">
+                <h2>Create a gift</h2>
+                <Gift size={20} strokeWidth={1.5} />
+              </div>
+              <GiftComposer
+                sender={sender}
+                from={from}
+                balance={balance}
+                draft={draft}
+                ready={ready}
+                onRefreshBalance={loadBalance}
+                onSent={(gift) => {
+                  setSelected(gift);
+                  selectedInitial.current = true;
+                  void refresh();
+                  loadBalance();
+                }}
+              />
+            </>
           )}
         </section>
         <div>
@@ -238,62 +300,11 @@ export function Dashboard() {
               <div className="panel-body">
                 <AppEnvelope amount={tokenAmount(selected.amount, 0)} design={selected.design} />
                 <ReceiptTimeline gift={selected} />
-                {claimLink && selected.status === "sent" && (
-                  <>
-                    <div className="qr-wrap">
-                      {qr && (
-                        <Image
-                          src={qr}
-                          alt="QR code to claim this gift"
-                          width={180}
-                          height={180}
-                          unoptimized
-                        />
-                      )}
-                    </div>
-                    <label className="field-label" htmlFor="claim-link">
-                      YOUR ENVELOPE LINK · KEEP PRIVATE
-                    </label>
-                    <div className="claim-link">
-                      <input id="claim-link" className="field-input" value={claimLink} readOnly />
-                      <button
-                        className="button dark small"
-                        type="button"
-                        aria-label="Copy envelope link"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(claimLink);
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
-                          } catch {
-                            setError("Copy the envelope link from the field above.");
-                          }
-                        }}
-                      >
-                        {copied ? <Check size={18} /> : <Copy size={18} />}
-                      </button>
-                    </div>
-                    <p className="field-hint">
-                      Share privately, or write this URL to your NFC sticker. Save it before closing
-                      this tab.
-                    </p>
-                  </>
-                )}
                 {selected.error && (
                   <p role="alert" className="notice error mt-4">
                     {selected.error}
                   </p>
                 )}
-                <button
-                  className="button secondary small mt-4"
-                  onClick={() => {
-                    setSelected(null);
-                    setClaimLink("");
-                    setQr("");
-                  }}
-                >
-                  Send another gift
-                </button>
               </div>
             ) : (
               <>
@@ -346,7 +357,7 @@ export function Dashboard() {
                   <th>ENVELOPE</th>
                   <th>AMOUNT</th>
                   <th>STATUS</th>
-                  <th>RECEIPT</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -357,8 +368,7 @@ export function Dashboard() {
                         className="text-left"
                         onClick={() => {
                           setSelected(gift);
-                          setClaimLink("");
-                          setQr("");
+                          selectedInitial.current = true;
                         }}
                       >
                         {gift.label}
@@ -373,12 +383,26 @@ export function Dashboard() {
                       <StatusBadge gift={gift} />
                     </td>
                     <td>
-                      <Link
-                        href={`/gifts/${gift.id}`}
-                        aria-label={`View receipt for ${gift.label}`}
-                      >
-                        <ArrowUpRight size={20} />
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {gift.status === "sent" && !gift.claimPending && (
+                          <button
+                            className="text-link"
+                            onClick={() => {
+                              setSelected(gift);
+                              selectedInitial.current = true;
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            Share gift
+                          </button>
+                        )}
+                        <Link
+                          href={`/gifts/${gift.id}`}
+                          aria-label={`View receipt for ${gift.label}`}
+                        >
+                          Receipt <ArrowUpRight size={16} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

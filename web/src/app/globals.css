@@ -345,3 +345,10 @@ svg { flex-shrink: 0; }
   .hero-media { width: 1.061em; margin-left: 0; }
   .caret { animation: none; }
 }
+
+/* Gift-flow refinements: long personal notes must stay inside their envelope. */
+.note-greeting, .gift-note { overflow-wrap: anywhere; }
+.timeline li[aria-current="step"] .step-number { border-color: var(--foreground); }
+.timeline-pending p { color: var(--muted-foreground); }
+.timeline p { font-size: 14px; line-height: 1.6; }
+.gift-table .text-link { white-space: nowrap; min-height: 40px; }

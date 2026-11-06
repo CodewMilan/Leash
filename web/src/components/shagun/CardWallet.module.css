@@ -1,54 +1,72 @@
 .wallet {
-  margin: 24px 0;
+  margin: 0 0 24px;
+}
+.heading {
+  gap: 12px;
+  align-items: center;
 }
 .wallet h2 {
-  font-size: 20px;
+  font-size: 21px;
   letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 .sandbox {
   font-size: 9px;
   letter-spacing: 0.04em;
   white-space: nowrap;
+  color: var(--muted-foreground);
 }
 .body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 20px;
-}
-.body > p {
-  font-size: 13px;
-  line-height: 1.6;
-}
-.card {
-  padding: 24px;
-  background: var(--color-purple-00);
-  color: var(--foreground);
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  border-radius: 12px;
-}
-.cardTop,
-.cardBottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 16px;
 }
-.cardTop strong {
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+.description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
 }
-.number {
-  font-size: clamp(15px, 3.4vw, 21px);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.preview {
+  width: 100%;
+  max-width: 360px;
+  align-self: center;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 16px;
 }
-.cardBottom {
+.preview > div {
+  max-width: 100%;
+}
+.cardLabel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
   font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin-top: -8px;
+}
+.cardLabel > :last-child {
+  color: var(--foreground);
+}
+.preparing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px 20px;
+  min-height: 150px;
+  background: var(--color-grey-01);
+  color: var(--muted-foreground);
+  text-align: center;
+  font-size: 13px;
+}
+.preparing strong {
+  color: var(--foreground);
+  font-weight: 500;
 }
 .balances {
   margin: 0;
@@ -63,14 +81,33 @@
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
+.balances dt {
+  color: var(--muted-foreground);
+}
 .balances dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .details {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.detailsHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.detailsHeading h3 {
+  font-size: 15px;
+}
+.detailsHeading button {
+  white-space: nowrap;
+  font-size: 12px;
 }
 .frame,
 .monthFrame,
@@ -78,10 +115,18 @@
   height: 30px;
   min-width: 0;
 }
+.frame iframe,
+.monthFrame iframe,
+.yearFrame iframe {
+  max-width: 100%;
+}
 .detailRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+}
+.detailRow > div {
+  min-width: 0;
 }
 .expiry {
   display: flex;
@@ -94,12 +139,95 @@
 .yearFrame {
   width: 50px;
 }
+.access {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+.inlineNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.inlineNotice svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
 @media (max-width: 400px) {
-  .wallet > :first-child {
+  .heading {
     flex-wrap: wrap;
     gap: 8px;
   }
-  .card {
-    padding: 20px;
+  .detailsHeading {
+    flex-wrap: wrap;
+  }
+  .wallet h2 {
+    font-size: 20px;
+  }
+}
+
+.available {
+  margin: 0 0 4px;
+}
+.available > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.available dt {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.available dd {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.activity {
+  border-top: 1px solid var(--border);
+}
+.activity summary {
+  cursor: pointer;
+  padding: 16px 0;
+  min-height: 44px;
+  font-size: 14px;
+}
+.activity summary > span {
+  float: right;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.activity .balances {
+  margin-bottom: 12px;
+}
+.refresh {
+  align-self: flex-end;
+  min-height: 36px;
+  font-size: 12px;
+  border-bottom: 0;
+}
+.shop {
+  font-size: 14px;
+}
+.wallet .heading {
+  padding: 18px 20px;
+}
+.wallet .body {
+  padding: 20px;
+}
+@media (max-width: 400px) {
+  .wallet .body {
+    padding: 16px;
+  }
+  .wallet .heading {
+    padding: 16px;
+  }
+  .available dd {
+    font-size: 29px;
   }
 }

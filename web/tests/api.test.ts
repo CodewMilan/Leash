@@ -190,7 +190,7 @@ describe("API authorization, concurrency and payout durability", () => {
     ]);
     expect(row.sender).toBeNull();
   });
-  it("stores the chosen card and sealed note, and rejects unknown designs and gifts under $1", async () => {
+  it("stores the chosen card and sealed note, and rejects unknown designs and gifts under $0.50 or fractional cents", async () => {
     const s = await senderSession();
     const secret = random();
     async function signed(amount: string) {
@@ -232,7 +232,11 @@ describe("API authorization, concurrency and payout durability", () => {
       (await request("gifts", { ...(await signed("25000000")), design: "casino" }, s.cookie))
         .status,
     ).toBe(400);
-    expect((await request("gifts", await signed("999999"), s.cookie)).status).toBe(400);
+    expect((await request("gifts", await signed("490000"), s.cookie)).status).toBe(400);
+    expect((await request("gifts", await signed("500001"), s.cookie)).status).toBe(400);
+    const minimumGift = await request("gifts", await signed("500000"), s.cookie);
+    expect(minimumGift.status).toBe(202);
+    expect((await minimumGift.json()).amount).toBe("500000");
     const defaulted = await (await request("gifts", await signed("1000000"), s.cookie)).json();
     expect(defaulted.design).toBe("diwali");
     expect(defaulted.sealedMessage).toBeNull();

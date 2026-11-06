@@ -1,0 +1,120 @@
+.summary {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.note {
+  margin: 0 0 24px;
+  padding: 20px 0;
+  border-block: 1px solid var(--border);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.note p {
+  font-size: 21px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.note footer {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-top: 12px;
+}
+.greeting {
+  text-align: center;
+  margin: -8px 0 24px;
+  color: var(--muted-foreground);
+}
+.flow {
+  margin: 24px 0;
+  display: grid;
+  gap: 18px;
+}
+.flow h2,
+.waiting h2 {
+  font-size: 25px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.flow > p,
+.waiting p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+}
+.flow h2:focus {
+  outline: none;
+}
+.progress {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+.progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.progress li[aria-current] {
+  color: var(--foreground);
+}
+.progress li[aria-current] span {
+  border-color: var(--foreground);
+}
+.confirmed {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.flow .deadline {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.waiting {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0;
+  padding: 24px 0;
+  border-block: 1px solid var(--border);
+}
+.waiting button {
+  justify-self: start;
+}
+.journey {
+  margin-top: 24px;
+  border-block: 1px solid var(--border);
+  padding: 20px 0;
+}
+.journey summary {
+  cursor: pointer;
+  min-height: 36px;
+  font-size: 15px;
+}
+.empty {
+  margin: 32px 0;
+}
+.empty h1 {
+  font-size: 32px;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+.empty p {
+  line-height: 1.6;
+}
+@media (max-width: 420px) {
+  .progress {
+    gap: 8px;
+  }
+  .progress li {
+    font-size: 12px;
+    gap: 6px;
+  }
+}

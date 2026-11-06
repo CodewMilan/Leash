@@ -1,0 +1,14 @@
+{
+  "chainId": 1874,
+  "vault": "0x192EF39B4E80Ab2dde7b9e9bC0222dc85407075f",
+  "token": "0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7",
+  "relayer": "0xE22E6f1faBc6CD11219F2437df55e1eC76417bfa",
+  "attester": "0xfe5222A86468c6942C20f08b9952661512CB4C17",
+  "operator": "0xE22E6f1faBc6CD11219F2437df55e1eC76417bfa",
+  "treasury": "0x922b1C071BCB3463aF781a17fCEDce1c7F903239",
+  "admin": "0x859Be5E3ED83fde1f95b1F2F7DdEC353Cf4ac13B",
+  "block": 12390772,
+  "transaction": "0x5c68ea897a66da640339c09a777f06aa4bc8256959bf64857b95fb4fcc8d0a1e",
+  "verified": false,
+  "compiler": "0.8.38+commit.1835d247.Emscripten.clang"
+}

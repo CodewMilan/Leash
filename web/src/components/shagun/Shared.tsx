@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, ExternalLink, Gift, RotateCcw } from "lucide-react";
 import type { AppStatus, GiftView } from "@/lib/types";
+import { giftStatusLabel, receiptSteps } from "./giftPresentation";
 import { explorerTx } from "@/lib/chain";
 
 export function TestBanner() {
@@ -18,14 +19,15 @@ export function TestBanner() {
 }
 export function SetupPanel({ status }: { status: AppStatus | null }) {
   if (!status) return null;
+  const coreServices = status.services.filter((s) => s.name !== "UPI test payouts");
   return (
     <details className="panel setup-summary">
       <summary>
-        {status.ready ? "All services configured" : "Service availability"} ·{" "}
-        {status.services.filter((s) => s.ready).length}/{status.services.length}
+        {status.ready ? "App connections ready" : "App connections"} ·{" "}
+        {coreServices.filter((s) => s.ready).length}/{coreServices.length}
       </summary>
       <ul className="setup-items">
-        {status.services.map((s) => (
+        {coreServices.map((s) => (
           <li key={s.name}>
             <span>
               {s.name}
@@ -48,80 +50,17 @@ export function StatusBadge({ gift }: { gift: GiftView }) {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
-  let label: string = gift.status;
-  if (gift.claimPending) label = "Claim confirming";
-  else if (gift.status === "sent" && gift.expiry * 1000 <= now) label = "Return pending";
-  else if (gift.status === "settled" && (gift.payoutId || gift.payoutStatus))
-    label =
-      gift.payoutStatus === "processed"
-        ? "Test payout complete"
-        : ["failed", "rejected", "cancelled", "reversed"].includes(gift.payoutStatus || "")
-          ? `Test payout ${gift.payoutStatus}`
-          : "Test payout pending";
-  else if (gift.status === "settled") label = "Gift spent";
-  else if (gift.status === "claimed") label = "Gift claimed";
-  else if (gift.status === "sent") label = "Ready to claim";
-  else if (gift.status === "pending") label = "Confirming";
+  const label = giftStatusLabel(gift, now);
   return <span className={`status-badge ${gift.status}`}>{label}</span>;
 }
 export function ReceiptTimeline({ gift }: { gift: GiftView }) {
-  const legacyPayout = !!(gift.payoutId || gift.payoutStatus);
-  const steps = [
-    {
-      title: "Gift secured",
-      description: "Official test USDT held in the gift vault.",
-      tx: gift.createdTx,
-      done: !!gift.createdTx,
-    },
-    {
-      title:
-        gift.status === "returned"
-          ? gift.claimTx
-            ? "Unused gift returned"
-            : "Unclaimed gift returned"
-          : "Claim verified",
-      description:
-        gift.status === "returned"
-          ? "The vault sent the remaining gift value back to its sender."
-          : "Passkey confirmation and the private gift link accepted.",
-      tx: gift.refundTx || gift.claimTx,
-      done: !!(gift.refundTx || gift.claimTx),
-    },
-    ...(gift.status === "returned"
-      ? []
-      : legacyPayout
-        ? [
-            {
-              title: "Treasury settlement",
-              description: "Tokens transferred before requesting a test payout.",
-              tx: gift.settlementTx,
-              done: !!gift.settlementTx,
-            },
-            {
-              title: "UPI test payout",
-              description: gift.payoutId
-                ? `${gift.payoutId} · ${gift.payoutStatus || "pending"}`
-                : "Waiting for token settlement. No real bank transfer.",
-              tx: null,
-              done: gift.payoutStatus === "processed",
-            },
-          ]
-        : [
-            {
-              title: "Card spending",
-              description: gift.settlementTx
-                ? "Cleared sandbox purchases have an on-chain settlement receipt."
-                : "Cleared card purchases settle from the gift as they arrive.",
-              tx: gift.settlementTx,
-              done: !!gift.settlementTx,
-            },
-          ]),
-  ];
+  const steps = receiptSteps(gift);
+  const current = steps.findIndex((step) => !step.done);
   return (
     <>
       {gift.cardAccounting && (
         <p className="notice mb-4">
-          Card {gift.cardAccounting.status} · ${(gift.cardAccounting.budgetCents / 100).toFixed(2)}{" "}
+          {giftStatusLabel(gift)} · ${(gift.cardAccounting.budgetCents / 100).toFixed(2)}{" "}
           budget · ${(gift.cardAccounting.reservedCents / 100).toFixed(2)} in pending purchases · $
           {(gift.cardAccounting.clearedCents / 100).toFixed(2)} cleared spending
         </p>
@@ -133,7 +72,11 @@ export function ReceiptTimeline({ gift }: { gift: GiftView }) {
       )}
       <ol className="timeline">
         {steps.map((s, i) => (
-          <li key={s.title}>
+          <li
+            key={s.key}
+            aria-current={i === current ? "step" : undefined}
+            className={!s.done ? "timeline-pending" : undefined}
+          >
             <span className={`step-number ${s.done ? "done" : ""}`}>
               {s.done ? <Check size={14} /> : i + 1}
             </span>

@@ -53,15 +53,15 @@ export function designById(id: string | null | undefined) {
 }
 
 export const GIFT_PRESETS = ["11", "25", "51", "101"];
-export const MIN_GIFT_UNITS = 1_000_000n;
+export const MIN_GIFT_UNITS = 500_000n;
 export const MAX_GIFT_UNITS = 1_000_000_000n;
 export const MESSAGE_MAX = 140;
 
-/** Parses a dollar amount and enforces the gift range ($1 to the vault's $1,000 cap). */
+/** Parses a dollar amount and enforces the whole-cent gift range ($0.50 to the vault's $1,000 cap). */
 export function giftUnits(value: string): bigint {
   const units = parseAmount(value.trim());
-  if (units < MIN_GIFT_UNITS || units > MAX_GIFT_UNITS)
-    throw new Error("Choose a gift between $1 and $1,000.");
+  if (units < MIN_GIFT_UNITS || units > MAX_GIFT_UNITS || units % 10_000n !== 0n)
+    throw new Error("Choose a gift between $0.50 and $1,000 in whole cents.");
   return units;
 }
 

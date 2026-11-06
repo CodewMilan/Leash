@@ -1,0 +1,20 @@
+.share { display: grid; gap: 16px; padding: 28px; min-width: 0; }
+.heading { display: flex; align-items: center; gap: 14px; }
+.heading h2 { font-size: 24px; letter-spacing: -.025em; line-height: 1.15; }
+.heading p { margin-top: 5px; color: var(--muted-foreground); font-size: 14px; }
+.mark { width: 48px; height: 48px; display: grid; place-items: center; background: var(--color-green-00); flex-shrink: 0; border-radius: 50%; }
+.share > p { font-size: 15px; line-height: 1.6; }
+.input { min-width: 0; text-overflow: ellipsis; font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions > * { flex: 1; white-space: nowrap; }
+.share .note { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--muted-foreground); line-height: 1.6; }
+.note svg { flex: 0 0 auto; margin-top: 3px; }
+.qr { border-top: 1px solid var(--border); padding-top: 16px; }
+.qr summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; min-height: 40px; }
+.qr img { margin: 12px auto 0; }
+.feedback { color: var(--foreground); }
+.feedback:empty { display: none; }
+.spin { animation: share-spin 1s linear infinite; }
+@keyframes share-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+@media (max-width: 480px) { .share { padding: 22px 18px; } .actions { flex-direction: column; } }

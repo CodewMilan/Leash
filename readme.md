@@ -36,7 +36,11 @@ Senders sign in with MetaMask. Without `NEXT_PUBLIC_PRIVY_APP_ID` the site talks
 
 ### Choosing a gift
 
-The sender picks a card design (Diwali, Birthday, Thank you, Wedding, Just because; see `web/src/lib/designs.ts`), an amount from $1 to $1,000 in official test USDT, an optional note for the recipient, a private label, a claim window and an optional company campaign, then reviews it before the wallet prompt. The design is stored with the gift. The note is encrypted in the browser with the envelope secret (AES-GCM), so the server and anyone without the claim link see only ciphertext; `openMessage(secret, gift.sealedMessage)` in `web/src/lib/giftMessage.ts` reads it on the claim side.
+The sender picks a card design (Diwali, Birthday, Thank you, Wedding, Just because; see `web/src/lib/designs.ts`), an amount from $0.50 to $1,000 in official test USDT, an optional note for the recipient, a private label, a claim window and an optional company campaign, then reviews it before the wallet prompt. The design is stored with the gift. The note is encrypted in the browser with the envelope secret (AES-GCM), so the server and anyone without the claim link see only ciphertext; `openMessage(secret, gift.sealedMessage)` in `web/src/lib/giftMessage.ts` reads it on the claim side.
+
+The guided sender flow is Details → Review → Wallet → Share. After funding confirms, use **Copy claim link**, **Open recipient page**, or **Save link**. The private link includes an automatically generated secret; no password is required. It stays in the current browser tab’s session storage, so save it before closing the tab or signing out. A receipt URL cannot recover a missing claim secret.
+
+Recipients see the chosen envelope and decrypt their personal note in the browser from the complete private link. The guided claim presents passkey confirmation first, then an explicit claim action. The page follows confirmation into card preparation and access; transaction history stays under “Follow your gift’s journey”. Incomplete links offer recovery guidance before asking for a passkey.
 
 ### Live Whitechain check (no mocks)
 

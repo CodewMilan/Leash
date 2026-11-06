@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { designById, designIds, GIFT_DESIGNS, GIFT_PRESETS, giftUnits } from "./designs";
 
 describe("gift catalogue", () => {
-  it("accepts $1 to $1,000 and rejects everything else", () => {
+  it("accepts $0.50 to $1,000 in whole cents and rejects everything else", () => {
+    expect(giftUnits("0.50")).toBe(500_000n);
     expect(giftUnits("1")).toBe(1_000_000n);
     expect(giftUnits(" 25.5 ")).toBe(25_500_000n);
     expect(giftUnits("1000")).toBe(1_000_000_000n);
-    for (const bad of ["0.99", "1000.01", "0", "-5", "abc", "1e3", ""])
+    for (const bad of ["0.49", "0.500001", "1.001", "1000.01", "0", "-5", "abc", "1e3", ""])
       expect(() => giftUnits(bad)).toThrow();
   });
   it("has unique designs, valid presets and a safe fallback", () => {
