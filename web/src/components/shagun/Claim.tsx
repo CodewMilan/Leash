@@ -133,7 +133,7 @@ export function Claim({ giftId, receipt = false }: { giftId: string; receipt?: b
               </div>
               <div className="claim-amount">${tokenAmount(gift.amount)}</div>
               <p className="text-center microcopy mb-6">
-                A virtual card with a spending budget matching your gift
+                A prepaid gift card in dollars, loaded with exactly this gift
               </p>
               <TestBanner />
               {(gift.status === "pending" || gift.claimPending) && (

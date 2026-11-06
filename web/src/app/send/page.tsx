@@ -4,7 +4,7 @@ import { SendWidget } from "@/components/shagun/SendWidget";
 
 export const metadata: Metadata = {
   title: "Send a Shagun",
-  description: "Send a gift in dollars from any app. The recipient claims it with a passkey as a sandbox virtual card.",
+  description: "Send a prepaid gift card from any app, paid in USDT. The recipient claims it with a passkey as a sandbox prepaid card.",
   robots: { index: false },
 };
 

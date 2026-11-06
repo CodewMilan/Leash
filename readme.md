@@ -1,6 +1,6 @@
 # Shagun
 
-A Diwali gift sent in dollars, claimed with a passkey, and redeemed as a gift-sized Lithic sandbox virtual card. Built in the existing Next.js website and brand kit.
+Prepaid fiat gift cards, paid in USDT. The sender pays for a Diwali gift in official test USDT on Whitechain without paying gas; the recipient claims it with a passkey and gets a prepaid dollar gift card (a Lithic sandbox virtual card) loaded with exactly the gift, with no wallet or crypto on their side. Unspent value returns to the sender. Built in the existing Next.js website and brand kit.
 
 **Current stage:** sender, verified claim, per-gift card issuance, hosted card details, authorization reservations, clearing reconciliation and partial chain settlement are connected in code. Local tests cover the integration; real end-to-end provider/chain validation requires a compatible deployed vault, Lithic signed webhooks and an HTTPS app origin. Sandbox cards cannot buy real goods. USDT is not converted into card funds.
 
@@ -81,7 +81,7 @@ pnpm build
 E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
-## Shagun virtual gift cards
+## Shagun prepaid gift cards
 
 New claims use card redemption. The recipient opens the private gift link, confirms a passkey and presents the private gift-link secret. After the on-chain claim confirms, the worker reserves one virtual card per gift and creates it paused with an exact lifetime budget: a $25 gift receives a 2,500-cent card limit; $51.50 receives 5,150 cents. Amounts must be whole cents. There is no fixed $100 sample pass or shared operator card in this journey.
 

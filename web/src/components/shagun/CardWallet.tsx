@@ -180,9 +180,9 @@ export function CardWallet({
       ? "Your card is closed."
       : closing
         ? "Your card is closing."
-        : "Your virtual card.";
+        : "Your prepaid gift card.";
   return (
-    <section className={`panel ${styles.wallet}`} aria-label="Your Shagun virtual card">
+    <section className={`panel ${styles.wallet}`} aria-label="Your Shagun prepaid gift card">
       <div className="panel-heading">
         <h2>{heading}</h2>
         <span className={styles.sandbox}>LITHIC SANDBOX</span>

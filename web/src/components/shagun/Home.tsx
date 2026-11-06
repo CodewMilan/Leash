@@ -11,7 +11,7 @@ import { MESSAGE_MAX } from "@/lib/designs";
 import { EASE, gsap, prefersReducedMotion, ScrollTrigger, SplitText, useGSAP } from "@/lib/gsap";
 
 const LINE_1 = ["Send", "a", "{media}", "gift"];
-const LINE_2 = ["that", "becomes", "a", "card"];
+const LINE_2 = ["as", "a", "prepaid", "card"];
 const LETTER_STAGGER = 0.025;
 const MEDIA = ["#36d972", "#ff942e", "#a199ff", "#ffc0c0", "#193ef9"];
 const TYPED = [
@@ -30,9 +30,9 @@ const CHIPS = [
 const CASES = [
   {
     title: "Family abroad",
-    caption: "You send test USDT from MetaMask. They confirm on their phone and get a virtual card for the amount. No wallet on their side.",
+    caption: "You pay in test USDT from MetaMask. They confirm on their phone and get a prepaid dollar card for the exact amount. No wallet or crypto on their side.",
     bg: "#ffbfec",
-    stickers: ["No wallet", "One tap", "Virtual card", "Comes back"],
+    stickers: ["No wallet", "One tap", "Prepaid card", "Comes back"],
     ticket: { tag: "Card ready", amount: "$25", line: "Priya · •••• 4142", foot: "Lithic sandbox" },
   },
   {
@@ -67,7 +67,7 @@ const CASES = [
 const STEPS = [
   ["Name the gift", "Amount, a note, and when it expires. You sign once in MetaMask; Shagun pays the gas."],
   ["They open the envelope", "A tap or a private link. They confirm with a passkey, then claim the gift on their phone."],
-  ["They get a card", "A Lithic sandbox virtual card with the gift as its limit. Purchases are simulated; no real money moves."],
+  ["They get a prepaid card", "A prepaid dollar gift card loaded with exactly the gift. It is a Lithic sandbox card, so purchases are simulated; no real money moves."],
   ["The rest comes back", "When the gift expires, the card closes and the unspent USDT returns to you. An unclaimed gift returns in full."],
 ];
 const STICKERS = ["#ff942e", "#a199ff", "#36d972", "#ffc0c0", "#f955b2", "#ffbfec"];
@@ -75,7 +75,7 @@ const NODES = [
   { id: "sender", label: "Sender", note: "signs once, pays no gas", x: 16, y: 22, bg: "#ffbfec" },
   { id: "passkey", label: "Passkey", note: "protects the gift claim", x: 84, y: 22, bg: "#f955b2" },
   { id: "vault", label: "Vault", note: "holds the USDT", x: 16, y: 80, bg: "#36d972" },
-  { id: "card", label: "Virtual card", note: "Lithic sandbox", x: 84, y: 80, bg: "#ff942e" },
+  { id: "card", label: "Prepaid card", note: "Lithic sandbox", x: 84, y: 80, bg: "#ff942e" },
 ];
 const STAGE = [
   { label: "Sent", bg: "#ffbfec" },
@@ -379,14 +379,14 @@ export function Home() {
       <main id="main" className="bg-white-00 text-ink lg:mr-[var(--rail-w)]">
         <section ref={heroRef} id="gift" className="flex flex-col items-center gap-8 px-4 pt-16 pb-14 lg:gap-12 lg:pt-24">
           <h1 className="hero-title w-full text-center text-[clamp(42px,7.4vw,104px)] text-ink">
-            <span className="sr-only">Send a gift that becomes a card</span>
+            <span className="sr-only">Send a gift as a prepaid card</span>
             <span aria-hidden="true">
               <HeadlineLine words={LINE_1} startIndex={0} />
               <HeadlineLine words={LINE_2} startIndex={letterCount(LINE_1)} />
             </span>
           </h1>
           <p className="hero-follow max-w-[640px] text-center text-[18px] leading-snug lg:text-[22px]">
-            You send dollars without paying gas. The recipient opens it with a passkey on their phone and gets a virtual card. Whatever they don&apos;t spend comes back to you.
+            You pay in USDT without paying gas. They open the envelope with a passkey and get a prepaid gift card in dollars, with no wallet and no crypto. Whatever they don&apos;t spend comes back to you.
           </p>
           <div className="hero-follow w-full max-w-[920px]">
             <form className="grid grid-cols-[1fr_88px] lg:grid-cols-[1fr_206px]" onSubmit={(event) => { event.preventDefault(); submit(); }}>
@@ -418,16 +418,16 @@ export function Home() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-center font-mono text-[11px] tracking-[0.12em] text-grey-04 uppercase">Whitechain testnet · Lithic sandbox card · No real money</p>
+            <p className="mt-3 text-center font-mono text-[11px] tracking-[0.12em] text-grey-04 uppercase">Whitechain testnet · Lithic sandbox prepaid card · No real money</p>
           </div>
         </section>
 
         <section ref={statementRef} className="flex flex-col gap-4 px-4 py-20 lg:py-28">
-          <p className="tag">Comes back</p>
+          <p className="tag">Crypto in, card out</p>
           <div className="lg:grid lg:grid-cols-[28%_1fr]">
             <div />
             <p ref={statementText} className="max-w-[860px] text-[clamp(28px,3.2vw,50px)] leading-[1.05] tracking-[-0.03em]">
-              Most gifts need an app on the other side. A Shagun needs a phone and a person, and whatever goes unspent comes back to you.
+              You pay in stablecoins. They get a prepaid gift card in dollars and never see a wallet, a token or a gas fee. Whatever goes unspent comes back to you.
             </p>
           </div>
         </section>
@@ -503,8 +503,8 @@ export function Home() {
 
         <div className="overflow-hidden border-y border-grey-02 py-4">
           <div ref={bandRef} className="flex w-[200%] font-mono text-[12px] tracking-[0.16em] whitespace-nowrap uppercase">
-            <span className="w-1/2">Envelope · Passkey · Private link · Virtual card · Comes back · No gas · One claim ·&nbsp;</span>
-            <span className="w-1/2" aria-hidden="true">Envelope · Passkey · Private link · Virtual card · Comes back · No gas · One claim ·&nbsp;</span>
+            <span className="w-1/2">Envelope · Passkey · Private link · Prepaid card · Comes back · No gas · One claim ·&nbsp;</span>
+            <span className="w-1/2" aria-hidden="true">Envelope · Passkey · Private link · Prepaid card · Comes back · No gas · One claim ·&nbsp;</span>
           </div>
         </div>
         <Hood />
@@ -540,7 +540,7 @@ export function Home() {
           <p className="tag">Limits</p>
           <h2 className="hero-title mt-4 max-w-[16ch] text-[clamp(32px,4vw,50px)]">What this demo will and will not claim</h2>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {[["On the chain, real", "The gift, the claim and the return are Whitechain testnet transactions in official test USDT."], ["The card, a sandbox", "The Lithic card is genuine but sandboxed. It is not on a card network; purchases are simulated."], ["Not scam-proof", "Anyone with an unclaimed gift’s private link can claim it with a passkey. After that, card access requires the original passkey."]].map(([title, body]) => (
+            {[["On the chain, real", "The gift, the claim and the return are Whitechain testnet transactions in official test USDT."], ["The card, a sandbox", "The prepaid Lithic card is genuine but sandboxed. It is not on a card network, purchases are simulated, and the test USDT is not converted into card funds."], ["Not scam-proof", "Anyone with an unclaimed gift’s private link can claim it with a passkey. After that, card access requires the original passkey."]].map(([title, body]) => (
               <article key={title} data-limit-card className="border border-grey-02 p-5">
                 <h3 className="text-[24px] tracking-[-0.03em]">{title}</h3>
                 <p className="mt-3 text-[15px] leading-relaxed text-grey-04">{body}</p>
@@ -562,7 +562,7 @@ export function Home() {
             </div>
           </div>
           <div className="grid gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
-            <p className="max-w-[16rem] text-[15px] leading-relaxed text-grey-04">A Diwali gift in dollars that arrives as a card. Built for ETHGlobal Mumbai.</p>
+            <p className="max-w-[16rem] text-[15px] leading-relaxed text-grey-04">Pay in USDT, give a prepaid gift card in dollars. Built for ETHGlobal Mumbai.</p>
             <nav aria-label="The gift" className="flex flex-col gap-2"><p className="font-mono text-[12px] tracking-[0.08em] uppercase">The gift</p><FlipLink href="/dashboard" label="Send a gift" className="self-start" /><FlipLink href="/#how" label="How it moves" className="self-start" /></nav>
             <nav aria-label="Partners" className="flex flex-col gap-2"><p className="font-mono text-[12px] tracking-[0.08em] uppercase">Partners</p><FlipLink href="https://whitechain.io" label="Whitechain" className="self-start" /><FlipLink href="https://www.lithic.com" label="Lithic" className="self-start" /></nav>
             <p className="font-mono text-[11px] tracking-[0.08em] text-grey-04 uppercase">Whitechain testnet · Lithic sandbox · No real money</p>
