@@ -13,15 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shagun · A Diwali gift, received in UPI",
+  title: "Shagun · A little gift. A lot of love.",
   description:
-    "Send a Diwali gift in dollars. The recipient claims it with their phone and receives rupees in UPI. Unclaimed gifts return to the sender.",
+    "Send a Diwali gift in dollars. Claim with your device and World ID. Built on Whitechain with explicitly simulated UPI test payouts.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${urbanist.variable} ${geistMono.variable} antialiased`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full"><a className="skip-link" href="#main">Skip to content</a>{children}</body>
     </html>
   );
 }
