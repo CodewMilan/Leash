@@ -1,6 +1,6 @@
 import { config } from "../config.js";
 import { mirrorNodeUrl } from "./client.js";
-import { fromBaseUnits } from "../policy.js";
+import { fromBaseUnits } from "../core/policy.js";
 
 /** USDC balance of an account as a decimal string, or null if the account is not associated with USDC. */
 export async function usdcBalance(accountId: string): Promise<string | null> {

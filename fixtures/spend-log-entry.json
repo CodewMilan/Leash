@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "kind": "payment",
+  "hederaTxId": "0.0.7162784@1762410000.123456789",
+  "amountUsdc": "20",
+  "tokenId": "0.0.429274",
+  "payTo": "0.0.6012345",
+  "merchant": "Photographer",
+  "resource": "http://192.168.1.20:4021/photo?amount=20",
+  "overLimit": true,
+  "approvals": { "fingerprint": true, "world": true, "worldReference": "7f6c2a1e-1f0b-4d1a-9d3e-6a2b8c4d5e6f" },
+  "zgRequestId": "req_01JBZ8Y2K4Q7W9X3M5N6P8R0ST",
+  "memoryRootHash": "0x9f2c4e6a8b0d1f3e5a7c9b1d3f5e7a9c0b2d4f6e8a0c2e4f6a8b0d2f4e6a8c0b",
+  "memoryTxHash": "0x1a3c5e7f9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d9f1a3c5e7b9d1f3a",
+  "at": "2026-11-06T09:30:00.000Z"
+}

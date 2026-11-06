@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import QRCode from "qrcode";
 import { BrainOfflineError, decide } from "./brain/zg.js";
 import { config } from "./config.js";
-import { findContact, loadContacts, type Contact } from "./contacts.js";
+import { findContact, loadContacts } from "./contacts.js";
+import { fillEndpoint, Refused } from "./core/contacts.js";
+import { checkPayment, fromBaseUnits } from "./core/policy.js";
 import { hashscanTx } from "./hedera/client.js";
 import { appendSpendLog } from "./hedera/spendLog.js";
 import { gpio } from "./hw/gpio.js";
@@ -11,7 +13,6 @@ import { saveMemory } from "./memory/zgStorage.js";
 import { approveWithFingerprint } from "./approve/thumb.js";
 import { requestWorldApproval } from "./approve/world.js";
 import { PaymentRejected, payX402 } from "./pay/x402.js";
-import { checkPayment, fromBaseUnits } from "./policy.js";
 import { state, type EpisodeRecord, type Light, type Phase, type ScreenState } from "./state.js";
 
 const LIGHT: Partial<Record<Phase, Light>> = {
@@ -32,18 +33,6 @@ function show(screen: Partial<ScreenState> & Pick<ScreenState, "phase" | "headli
   const light = LIGHT[screen.phase] ?? "off";
   gpio.light(light);
   state.setScreen({ light, ...screen });
-}
-
-class Refused extends Error {}
-
-function fillEndpoint(contact: Contact, amountUsdc: string | null, qty: number | null): string {
-  let url = contact.endpoint;
-  if (url.includes("{amount}")) {
-    if (!amountUsdc) throw new Refused(`${contact.name} needs an amount; say how much to pay`);
-    url = url.replace("{amount}", encodeURIComponent(amountUsdc));
-  }
-  if (url.includes("{qty}")) url = url.replace("{qty}", String(qty ?? 1));
-  return url;
 }
 
 export class Agent {
@@ -139,7 +128,12 @@ export class Agent {
     const result = await payX402(resource, {
       signal,
       approve: async (payment) => {
-        const verdict = checkPayment({ payment, contact, decidedAmountUsdc: decision.amountUsdc });
+        const verdict = checkPayment({
+          payment,
+          contact,
+          decidedAmountUsdc: decision.amountUsdc,
+          rules: { deviceAccountId: config.hedera.accountId, usdcTokenId: config.hedera.usdcTokenId, spendLimitUsdc: config.spendLimitUsdc },
+        });
         if (!verdict.ok) throw new Refused(verdict.reason);
         const amountUsdc = fromBaseUnits(payment.amount);
         const screenPayment = { amountUsdc, payTo: payment.payTo, payToName: contact.name, merchant: contact.name, overLimit: verdict.overLimit };

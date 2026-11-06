@@ -11,7 +11,9 @@
     "enroll:finger": "tsx scripts/enroll-finger.ts",
     "enroll:world": "tsx scripts/enroll-world.ts",
     "ask": "tsx scripts/ask.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "tsc --noEmit && vitest run"
   },
   "dependencies": {
     "@0gfoundation/0g-storage-ts-sdk": "1.2.13",

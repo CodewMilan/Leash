@@ -1,6 +1,6 @@
 /** One-time: associate the merchant account with testnet USDC so it can receive payments. */
 import { AccountId, Client, PrivateKey, TokenAssociateTransaction, TokenId } from "@x402/hedera";
-import { config } from "../src/config.js";
+import { config } from "../src/env.js";
 
 const raw = process.env.MERCHANT_PRIVATE_KEY?.trim().replace(/^0x/, "");
 if (!raw) throw new Error("Missing MERCHANT_PRIVATE_KEY (only needed for this setup step)");

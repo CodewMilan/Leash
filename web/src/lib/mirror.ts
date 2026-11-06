@@ -97,17 +97,20 @@ export async function fetchSpendLog(network: Network, topicId: string): Promise<
   const data = await getJson<{
     messages: { sequence_number: number; consensus_timestamp: string; message: string }[];
   }>(network, `/api/v1/topics/${topicId}/messages?order=desc&limit=50`);
-  return data.messages.map((m) => {
-    const raw = decodeBase64Utf8(m.message);
-    let entry: SpendEntry | null = null;
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") entry = parsed as SpendEntry;
-    } catch {
-      entry = null;
-    }
-    return { sequence: m.sequence_number, timestamp: m.consensus_timestamp, raw, entry };
-  });
+  return data.messages.map(parseTopicMessage);
+}
+
+/** Decodes one mirror node topic message; anything that isn't a JSON object keeps its raw text and no entry. */
+export function parseTopicMessage(m: { sequence_number: number; consensus_timestamp: string; message: string }): LogMessage {
+  const raw = decodeBase64Utf8(m.message);
+  let entry: SpendEntry | null = null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) entry = parsed as SpendEntry;
+  } catch {
+    entry = null;
+  }
+  return { sequence: m.sequence_number, timestamp: m.consensus_timestamp, raw, entry };
 }
 
 const decimalsCache = new Map<string, number>();
@@ -142,17 +145,22 @@ export async function fetchUsdcTransfers(
   usdcTokenId: string,
 ): Promise<Transfer[]> {
   const [data, decimals] = await Promise.all([
-    getJson<{
-      transactions: {
-        transaction_id: string;
-        consensus_timestamp: string;
-        result: string;
-        token_transfers?: { token_id: string; account: string; amount: number }[];
-      }[];
-    }>(network, `/api/v1/transactions?account.id=${accountId}&order=desc&limit=50`),
+    getJson<{ transactions: MirrorTransaction[] }>(network, `/api/v1/transactions?account.id=${accountId}&order=desc&limit=50`),
     tokenDecimals(network, usdcTokenId),
   ]);
-  return data.transactions
+  return toUsdcTransfers(data.transactions, accountId, usdcTokenId, decimals);
+}
+
+export type MirrorTransaction = {
+  transaction_id: string;
+  consensus_timestamp: string;
+  result: string;
+  token_transfers?: { token_id: string; account: string; amount: number }[];
+};
+
+/** Keeps the account's USDC movements, signed from its point of view, with the other side of each transfer. */
+export function toUsdcTransfers(transactions: MirrorTransaction[], accountId: string, usdcTokenId: string, decimals: number): Transfer[] {
+  return transactions
     .filter((t) => t.token_transfers?.some((tt) => tt.token_id === usdcTokenId && tt.account === accountId))
     .map((t) => {
       const usdc = t.token_transfers!.filter((tt) => tt.token_id === usdcTokenId);
