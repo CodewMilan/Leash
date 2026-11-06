@@ -10,7 +10,8 @@ export function TestBanner() {
     <div className="test-banner">
       <span className="badge">TEST MODE</span>
       <span>
-        Whitechain testnet gifts. UPI payouts are simulated; no money reaches a bank account.
+        Whitechain testnet gifts in official test USDT. Recipient cards run in sandbox; no real
+        money moves.
       </span>
     </div>
   );

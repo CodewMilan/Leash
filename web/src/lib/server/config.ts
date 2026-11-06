@@ -62,7 +62,7 @@ export function appStatus(): AppStatus {
     {
       name: "Sender sign-in",
       ready: has("NEXT_PUBLIC_PRIVY_APP_ID"),
-      detail: "Privy embedded wallet",
+      detail: "Privy wallet connect · MetaMask",
     },
     {
       name: "Gift storage",

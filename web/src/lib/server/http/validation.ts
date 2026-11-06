@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { getAddress, isAddress } from "ethers";
+import { DEFAULT_DESIGN, designIds } from "../../designs";
+import { sealedMessagePattern } from "../../giftMessage";
 export const bytes32 = z.string().regex(/^0x[a-fA-F0-9]{64}$/);
 export const address = z
   .string()
@@ -20,4 +22,6 @@ export const giftSchema = z.object({
   validBefore: z.number().int(),
   signature: z.string().regex(/^0x[a-fA-F0-9]{130}$/),
   label: z.string().trim().min(1).max(80),
+  design: z.enum(designIds).default(DEFAULT_DESIGN),
+  sealedMessage: z.string().regex(sealedMessagePattern).nullish(),
 });

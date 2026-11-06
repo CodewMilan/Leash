@@ -105,7 +105,8 @@ function describe(c: Stripe.Issuing.Card) {
     exp: `${c.exp_month}/${c.exp_year}`,
     status: c.status,
     currency: c.currency,
-    allTimeLimit: c.spending_controls.spending_limits?.find((l) => l.interval === "all_time")?.amount ?? null,
+    allTimeLimit:
+      c.spending_controls.spending_limits?.find((l) => l.interval === "all_time")?.amount ?? null,
     purpose: c.metadata?.purpose ?? null,
   };
 }
@@ -160,6 +161,8 @@ try {
   }
 } catch (error) {
   const e = error as { type?: string; code?: string; message?: string };
-  console.error(JSON.stringify({ error: e.type || "Error", code: e.code ?? null, message: e.message }));
+  console.error(
+    JSON.stringify({ error: e.type || "Error", code: e.code ?? null, message: e.message }),
+  );
   process.exitCode = 1;
 }

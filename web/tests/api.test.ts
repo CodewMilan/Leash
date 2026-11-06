@@ -3,13 +3,14 @@ import { PGlite } from "@electric-sql/pglite";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { Wallet, ZeroHash, hexlify, keccak256 } from "ethers";
 import { hashSignal } from "@worldcoin/idkit-core/hashing";
-import { schema } from "../../db/migrations/001_initial";
+import { migrations } from "../../db/migrations";
 import { handleApi } from "../src/lib/server/api";
 import { setTestDatabase, sql } from "../src/lib/server/db";
 import { encrypt, sha256 } from "../src/lib/server/security/crypto";
 import { executePayout, recordPayoutStatus } from "../src/lib/server/payouts/razorpay";
 import { verifyWorld, worldRequest, type WorldRequest } from "../src/lib/server/world/verification";
 import { authorizationTypes, giftNonce, TOKEN_DOMAIN, type GiftTerms } from "../src/lib/chain";
+import { openMessage, sealMessage } from "../src/lib/giftMessage";
 
 describe("API authorization, concurrency and payout durability", () => {
   let db: PGlite;
@@ -31,7 +32,7 @@ describe("API authorization, concurrency and payout durability", () => {
     vi.stubEnv("RAZORPAYX_ACCOUNT_NUMBER", "test_account");
     vi.stubEnv("RAZORPAYX_WEBHOOK_SECRET", random());
     db = new PGlite();
-    await db.exec(schema);
+    for (const migration of migrations) await db.exec(migration.sql);
     setTestDatabase(db);
   });
   beforeEach(async () => {
@@ -191,6 +192,73 @@ describe("API authorization, concurrency and payout durability", () => {
       (await request("gifts", { ...body, terms: { ...terms, expiry: terms.expiry + 1 } }, s.cookie))
         .status,
     ).toBe(403);
+  });
+  it("rejects a sign-in signature from a different wallet", async () => {
+    const s = await newSession();
+    const options = await (
+      await request("auth/sender/options", { address: sender.address }, s.cookie)
+    ).json();
+    const forged = await Wallet.createRandom().signMessage(options.message);
+    expect(
+      (
+        await request(
+          "auth/sender/verify",
+          { challengeId: options.challengeId, signature: forged },
+          s.cookie,
+        )
+      ).status,
+    ).toBe(403);
+    const [row] = await sql<{ sender: string | null }>("SELECT sender FROM sessions WHERE id=$1", [
+      s.id,
+    ]);
+    expect(row.sender).toBeNull();
+  });
+  it("stores the chosen card and sealed note, and rejects unknown designs and gifts under $1", async () => {
+    const s = await senderSession();
+    const secret = random();
+    async function signed(amount: string) {
+      const terms: GiftTerms = {
+        from: sender.address,
+        amount,
+        expiry: Math.floor(Date.now() / 1000) + 3600,
+        secretHash: keccak256(secret),
+        campaignId: ZeroHash,
+        boundHuman: ZeroHash,
+        salt: random(),
+      };
+      const validBefore = Math.floor(Date.now() / 1000) + 300;
+      const signature = await sender.signTypedData(TOKEN_DOMAIN, authorizationTypes, {
+        from: sender.address,
+        to: vault,
+        value: amount,
+        validAfter: 0,
+        validBefore,
+        nonce: giftNonce(vault, terms),
+      });
+      return { terms, validAfter: 0, validBefore, signature, label: "Card gift" };
+    }
+    const sealedMessage = await sealMessage(secret, "Happy Diwali, Priya!");
+    const created = await request(
+      "gifts",
+      { ...(await signed("25000000")), design: "birthday", sealedMessage },
+      s.cookie,
+    );
+    expect(created.status).toBe(202);
+    const gift = await created.json();
+    expect(gift.design).toBe("birthday");
+    const viewer = await newSession();
+    const publicView = await (await request(`gifts/${gift.id}`, undefined, viewer.cookie)).json();
+    expect(publicView.sealedMessage).toBe(sealedMessage);
+    expect(JSON.stringify(publicView)).not.toContain("Priya");
+    expect(await openMessage(secret, publicView.sealedMessage)).toBe("Happy Diwali, Priya!");
+    expect(
+      (await request("gifts", { ...(await signed("25000000")), design: "casino" }, s.cookie))
+        .status,
+    ).toBe(400);
+    expect((await request("gifts", await signed("999999"), s.cookie)).status).toBe(400);
+    const defaulted = await (await request("gifts", await signed("1000000"), s.cookie)).json();
+    expect(defaulted.design).toBe("diwali");
+    expect(defaulted.sealedMessage).toBeNull();
   });
   it("rejects wrong World action, signal, environment and credential before external verification", async () => {
     const config = worldRequest("test-gift-session");

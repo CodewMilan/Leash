@@ -5,8 +5,7 @@ import { STRIPE_API_VERSION, assertSandbox, stripe } from "./stripe";
 import { PHASE0_PURPOSE } from "./webhooks";
 
 function enabled() {
-  if (process.env.NODE_ENV === "production")
-    throw new AppError("Page not found.", 404);
+  if (process.env.NODE_ENV === "production") throw new AppError("Page not found.", 404);
 }
 
 async function phase0Card() {

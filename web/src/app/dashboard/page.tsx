@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Header } from "@/components/Header";
 import { Dashboard } from "@/components/shagun/Dashboard";
 
@@ -11,7 +12,9 @@ export default function DashboardPage() {
   return (
     <>
       <Header />
-      <Dashboard />
+      <Suspense fallback={<div className="loading-block" aria-label="Loading" />}>
+        <Dashboard />
+      </Suspense>
     </>
   );
 }

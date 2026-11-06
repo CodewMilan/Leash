@@ -23,6 +23,8 @@ export type GiftRow = {
   settlement_tx: string | null;
   refund_tx: string | null;
   error: string | null;
+  design: string;
+  sealed_message: string | null;
   created_at: Date;
   payout_id?: string | null;
   payout_status?: string | null;
@@ -54,6 +56,8 @@ export function publicGift(g: GiftRow, canViewReceipt: boolean): GiftView {
     canViewReceipt,
     claimPending: g.status === "sent" && !!g.claim_session,
     error: canViewReceipt ? g.error : null,
+    design: g.design,
+    sealedMessage: g.sealed_message,
   };
 }
 export async function canViewGift(gift: GiftRow, current: Session) {

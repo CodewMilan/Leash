@@ -1,14 +1,24 @@
 import { Gift, ArrowUpRight } from "lucide-react";
+import { designById } from "@/lib/designs";
 
 /** Application illustration, independent of the landing page's editorial components. */
-export function AppEnvelope({ amount = "25" }: { amount?: string }) {
+export function AppEnvelope({
+  amount = "25",
+  design = "love",
+  note,
+}: {
+  amount?: string;
+  design?: string;
+  note?: string;
+}) {
+  const d = designById(design);
   return (
-    <div className="envelope-stage tone-pink is-small" aria-hidden="true">
+    <div className={`envelope-stage ${d.tone} is-small`} aria-hidden="true">
       <div className="envelope-object">
         <div className="gift-note">
-          <span className="note-label">A LITTLE SOMETHING FOR YOU</span>
+          <span className="note-label">{d.heading}</span>
           <span className="note-amount">${amount}</span>
-          <span className="note-greeting">With love, from miles away.</span>
+          <span className="note-greeting">{note || d.greeting}</span>
         </div>
         <div className="envelope-back" />
         <div className="envelope-face">

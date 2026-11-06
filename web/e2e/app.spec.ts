@@ -35,10 +35,15 @@ test("dashboard is usable at phone and desktop widths without invented gifts", a
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: "A little goes a long way." })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Confirm & send gift" })).toBeDisabled();
-    await expect(page.getByText("UPI payouts are simulated", { exact: false })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Review gift" })).toBeDisabled();
+    await expect(page.getByText("Recipient cards run in sandbox", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "$51", exact: true }).click();
-    await expect(page.getByLabel("GIFT AMOUNT · DOLLARS")).toHaveValue("51");
+    await expect(page.getByLabel("GIFT AMOUNT · USDT")).toHaveValue("51");
+    await page.getByRole("radio", { name: "Birthday" }).click();
+    await expect(page.getByRole("radio", { name: "Birthday" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);

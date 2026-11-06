@@ -17,6 +17,9 @@ export type GiftView = {
   canViewReceipt: boolean;
   claimPending: boolean;
   error: string | null;
+  design: string;
+  /** Recipient note sealed with the envelope secret; readable only with the claim link. */
+  sealedMessage: string | null;
 };
 export type AppStatus = {
   chainId: number;

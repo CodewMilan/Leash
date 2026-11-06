@@ -1,11 +1,14 @@
 "use client";
 import { createContext, useContext } from "react";
 import type { JsonRpcSigner } from "ethers";
+import { WALLETS, type WalletOption } from "@/lib/wallets";
 export type Sender = {
   ready: boolean;
-  authenticated: boolean;
+  configured: boolean;
   account: string | null;
-  connect: () => Promise<string | null>;
+  wallet: WalletOption | null;
+  wallets: WalletOption[];
+  connect: (walletId: string) => Promise<string | null>;
   signer: () => Promise<JsonRpcSigner>;
   logout: () => Promise<void>;
 };
@@ -17,13 +20,15 @@ export function useSender() {
 }
 export const unconfiguredSender: Sender = {
   ready: true,
-  authenticated: false,
+  configured: false,
   account: null,
+  wallet: null,
+  wallets: WALLETS,
   connect: async () => {
-    throw new Error("Sender sign-in is being configured. Please try again shortly.");
+    throw new Error("Wallet sign-in is being configured. Please try again shortly.");
   },
   signer: async () => {
-    throw new Error("Sender sign-in is not configured.");
+    throw new Error("Wallet sign-in is not configured.");
   },
   logout: async () => {},
 };

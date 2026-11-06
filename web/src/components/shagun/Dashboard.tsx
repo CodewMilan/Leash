@@ -3,15 +3,16 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, Check, Copy, Download, Gift, LogOut, RefreshCw } from "lucide-react";
-import { id, keccak256, randomBytes, hexlify } from "ethers";
 import QRCode from "qrcode";
-import { authorizationTypes, giftNonce, TOKEN_DOMAIN, ZeroHash, type GiftTerms } from "@/lib/chain";
-import { inr, parseAmount, toPaise, tokenAmount } from "@/lib/amounts";
+import { tokenAmount } from "@/lib/amounts";
 import { api } from "@/lib/client-api";
 import type { AppStatus, GiftView } from "@/lib/types";
 import { SenderContext, unconfiguredSender, useSender } from "./SenderContext";
+import { claimLinkFor, forgetEnvelopes, walletMessage } from "./giftFlow";
+import { GiftComposer, useGiftDraft } from "./GiftComposer";
 import { AppEnvelope } from "./AppEnvelope";
 import {
   EmptyGifts,
@@ -24,7 +25,7 @@ import {
 
 const SenderProvider = dynamic(() => import("./SenderProvider"), {
   ssr: false,
-  loading: () => <div className="loading-block" aria-label="Loading sender sign-in" />,
+  loading: () => <div className="loading-block" aria-label="Loading wallet sign-in" />,
 });
 export function Dashboard() {
   if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID)
@@ -39,14 +40,26 @@ export function Dashboard() {
     </SenderProvider>
   );
 }
+const ONBOARDING = [
+  [
+    "Connect MetaMask",
+    "Shagun adds Whitechain testnet to your wallet and asks you to sign in. No gas, no transaction.",
+  ],
+  [
+    "Choose a card",
+    "Pick a design and an amount in official test USDT. You never need WBT for gas.",
+  ],
+  [
+    "Approve and share",
+    "Approve once in your wallet. Shagun pays the network fee, then gives you a private link to share.",
+  ],
+];
 function SenderDashboard() {
   const sender = useSender();
+  const params = useSearchParams();
+  const draft = useGiftDraft({ amount: params.get("amount"), design: params.get("design") });
   const [status, setStatus] = useState<AppStatus | null>(null);
   const [from, setFrom] = useState<string | null>(null);
-  const [amount, setAmount] = useState("25");
-  const [label, setLabel] = useState("A little Diwali love");
-  const [expiry, setExpiry] = useState("86400");
-  const [campaign, setCampaign] = useState("");
   const [balance, setBalance] = useState<string | null>(null);
   const [gifts, setGifts] = useState<GiftView[]>([]);
   const [selected, setSelected] = useState<GiftView | null>(null);
@@ -82,117 +95,62 @@ function SenderDashboard() {
         if (s.sender) void refresh();
       })
       .catch(() => {});
-    const initial = new URLSearchParams(window.location.search).get("amount");
-    if (initial) {
-      try {
-        parseAmount(initial);
-        queueMicrotask(() => setAmount(initial));
-      } catch {
-        /* Fall back to the default. */
-      }
-    }
     const timer = setInterval(() => {
       if (!document.hidden) void refresh();
     }, 8_000);
     return () => clearInterval(timer);
   }, [refresh]);
+  const loadBalance = useCallback(() => {
+    api<{ balance: string }>("balance")
+      .then((r) => setBalance(r.balance))
+      .catch(() => setBalance(null));
+  }, []);
   useEffect(() => {
-    if (from)
-      api<{ balance: string }>("balance")
-        .then((r) => setBalance(r.balance))
-        .catch(() => setBalance(null));
-  }, [from]);
+    if (from) loadBalance();
+  }, [from, loadBalance]);
   useEffect(() => {
     if (!selected?.createdTx || selected.status !== "sent") return;
-    const secret = sessionStorage.getItem(`shagun-envelope:${selected.id}`);
-    if (!secret) return;
-    const link = `${window.location.origin}/claim/${selected.id}#${secret}`;
+    const link = claimLinkFor(selected.id);
+    if (!link) return;
     queueMicrotask(() => setClaimLink(link));
     QRCode.toDataURL(link, { width: 240, margin: 2, errorCorrectionLevel: "M" })
       .then(setQr)
       .catch(() => {});
   }, [selected?.id, selected?.createdTx, selected?.status]);
-  async function connect() {
-    setBusy("Connecting your account…");
+  async function connect(walletId: string) {
+    setBusy("Connecting your wallet…");
     setError("");
     try {
-      const account = await sender.connect();
+      const account = await sender.connect(walletId);
       if (account) {
         setFrom(account);
         await refresh();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in could not complete.");
+      setError(walletMessage(e, "Wallet sign-in could not complete."));
     } finally {
       setBusy("");
     }
   }
-  async function send(event: FormEvent) {
-    event.preventDefault();
-    setError("");
-    setClaimLink("");
-    setQr("");
-    setBusy("Preparing your gift…");
+  async function logout() {
     try {
-      if (!from || from !== sender.account)
-        throw new Error("Sign in and confirm your sender account first.");
-      const units = parseAmount(amount);
-      if (balance !== null && BigInt(balance) < units)
-        throw new Error("Your demo account needs more test dollars before you can send this gift.");
-      const config = await api<{ vault: string }>("gift-config");
-      const secret = hexlify(randomBytes(32));
-      const terms: GiftTerms = {
-        from,
-        amount: String(units),
-        expiry: Math.floor(Date.now() / 1000) + Number(expiry),
-        secretHash: keccak256(secret),
-        boundHuman: ZeroHash,
-        campaignId: campaign.trim() ? id(campaign.trim().toLowerCase()) : ZeroHash,
-        salt: hexlify(randomBytes(32)),
-      };
-      const nonce = giftNonce(config.vault, terms);
-      const validAfter = 0,
-        validBefore = Math.floor(Date.now() / 1000) + 300;
-      // Keep the envelope key in this tab only; it is never included in API URL paths or analytics.
-      sessionStorage.setItem(`shagun-envelope:${nonce}`, secret);
-      setBusy("Confirm the gift in your account…");
-      const signer = await sender.signer();
-      const signature = await signer.signTypedData(TOKEN_DOMAIN, authorizationTypes, {
-        from,
-        to: config.vault,
-        value: terms.amount,
-        validAfter,
-        validBefore,
-        nonce,
-      });
-      setBusy("Submitting your sponsored gift…");
-      const gift = await api<GiftView>("gifts", {
-        terms,
-        validAfter,
-        validBefore,
-        signature,
-        label,
-      });
-      setSelected(gift);
-      await refresh();
+      await sender.logout();
+      setFrom(null);
+      setGifts([]);
+      setSelected(null);
+      setClaimLink("");
+      setQr("");
+      forgetEnvelopes();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Your gift could not be submitted.");
-    } finally {
-      setBusy("");
+      setError(e instanceof Error ? e.message : "Could not sign out.");
     }
-  }
-  let estimate = "—";
-  try {
-    estimate = inr(toPaise(parseAmount(amount), status?.rate || "84.00"));
-  } catch {
-    /* Inline validation occurs on submission. */
   }
   const signedIn = from !== null && from === sender.account;
-  const canSend =
-    signedIn &&
-    status?.services
-      .filter((s) => ["Gift storage", "Whitechain"].includes(s.name))
-      .every((s) => s.ready);
+  const mismatch = from !== null && sender.account !== null && from !== sender.account;
+  const ready = !!status?.services
+    .filter((s) => ["Gift storage", "Whitechain"].includes(s.name))
+    .every((s) => s.ready);
+  const walletId = sender.wallet?.id || sender.wallets[0]?.id;
   return (
     <main id="main" className="app-shell enter">
       <div className="eyebrow">YOUR GOOD WISHES, ALL IN ONE PLACE.</div>
@@ -205,167 +163,96 @@ function SenderDashboard() {
           {signedIn ? (
             <>
               <span className="mono">
+                {sender.wallet ? `${sender.wallet.label} · ` : ""}
                 {from.slice(0, 6)}…{from.slice(-4)} · ${tokenAmount(balance)}
               </span>
-              <button
-                className="button secondary small"
-                aria-label="Sign out"
-                onClick={async () => {
-                  try {
-                    await sender.logout();
-                    setFrom(null);
-                    setGifts([]);
-                    setSelected(null);
-                    setClaimLink("");
-                    setQr("");
-                    Object.keys(sessionStorage)
-                      .filter((k) => k.startsWith("shagun-envelope:"))
-                      .forEach((k) => sessionStorage.removeItem(k));
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : "Could not sign out.");
-                  }
-                }}
-              >
+              <button className="button secondary small" aria-label="Sign out" onClick={logout}>
                 <LogOut size={16} />
               </button>
             </>
           ) : (
-            <button
-              className="button dark small"
-              onClick={connect}
-              disabled={!!busy || !sender.ready || !process.env.NEXT_PUBLIC_PRIVY_APP_ID}
-            >
-              {sender.authenticated ? "Confirm sender account" : "Sign in to send"}
-              <ArrowUpRight size={16} />
-            </button>
+            sender.wallets.map((wallet) => (
+              <button
+                key={wallet.id}
+                className="button dark small"
+                onClick={() => connect(wallet.id)}
+                disabled={!!busy || !sender.ready || !sender.configured}
+              >
+                {busy ||
+                  (sender.account && sender.wallet?.id === wallet.id
+                    ? `Sign in with ${wallet.label}`
+                    : `Connect ${wallet.label}`)}
+                <ArrowUpRight size={16} />
+              </button>
+            ))
           )}
         </div>
       </div>
       <TestBanner />
+      {error && (
+        <div className="notice error mb-4" role="alert">
+          {error}
+        </div>
+      )}
+      {mismatch && walletId && (
+        <div className="notice mb-4" role="status">
+          You signed in as {from.slice(0, 6)}…{from.slice(-4)}, but{" "}
+          {sender.wallet?.label || "your wallet"} is now on {sender.account!.slice(0, 6)}…
+          {sender.account!.slice(-4)}. Switch back in your wallet, or{" "}
+          <button className="underline" onClick={() => connect(walletId)}>
+            sign in with this account
+          </button>
+          .
+        </div>
+      )}
+      {!signedIn && !mismatch && (
+        <ol className="onboarding mb-6">
+          {ONBOARDING.map(([title, text], i) => (
+            <li key={title}>
+              <span className="mono">0{i + 1}</span>
+              <strong>{title}</strong>
+              <p>{text}</p>
+            </li>
+          ))}
+        </ol>
+      )}
       <div className="dashboard-grid">
         <section className="panel">
           <div className="panel-heading">
             <h2>Put a little love in it.</h2>
             <Gift size={20} strokeWidth={1.5} />
           </div>
-          <form className="panel-body form-stack" onSubmit={send} aria-busy={!!busy}>
-            <div>
-              <label className="field-label" htmlFor="gift-amount">
-                GIFT AMOUNT · DOLLARS
-              </label>
-              <input
-                className="field-input large"
-                id="gift-amount"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                maxLength={10}
-              />
-              <div className="amount-presets mt-3">
-                {["11", "25", "51", "101"].map((v) => (
-                  <button
-                    type="button"
-                    key={v}
-                    aria-pressed={v === amount}
-                    onClick={() => setAmount(v)}
-                  >
-                    ${v}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="field-label" htmlFor="gift-label">
-                A NOTE FOR YOUR RECORDS
-              </label>
-              <input
-                className="field-input"
-                id="gift-label"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                required
-                maxLength={80}
-                autoComplete="off"
-              />
-            </div>
-            <div className="field-row">
-              <div>
-                <label className="field-label" htmlFor="expiry">
-                  CLAIM WITHIN
-                </label>
-                <select
-                  className="field-input"
-                  id="expiry"
-                  value={expiry}
-                  onChange={(e) => setExpiry(e.target.value)}
-                >
-                  <option value="86400">24 hours</option>
-                  <option value="259200">3 days</option>
-                  <option value="604800">7 days</option>
-                  <option value="300">5 minutes · return demo</option>
-                </select>
-              </div>
-              <div>
-                <label className="field-label" htmlFor="campaign">
-                  CAMPAIGN · OPTIONAL
-                </label>
-                <input
-                  className="field-input"
-                  id="campaign"
-                  placeholder="e.g. diwali-2026"
-                  value={campaign}
-                  onChange={(e) => setCampaign(e.target.value)}
-                  maxLength={60}
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-            <p className="microcopy">
-              Use the same campaign name across envelopes to allow one gift per verified human.
+          <GiftComposer
+            sender={sender}
+            from={from}
+            balance={balance}
+            draft={draft}
+            ready={ready}
+            onSent={(gift) => {
+              setClaimLink("");
+              setQr("");
+              setSelected(gift);
+              void refresh();
+              loadBalance();
+            }}
+          />
+          {!signedIn && (
+            <p className="microcopy px-6 pb-6">
+              {sender.configured
+                ? "Connect your wallet above to send. You sign once to sign in and once per gift."
+                : "Wallet sign-in is being set up. You can preview a card while services are connected."}
             </p>
-            <div className="quote">
-              <div>
-                <p>Indicative UPI test payout</p>
-                <strong className="mono">{estimate}</strong>
-              </div>
-              <div>
-                <p>Network fee for you</p>
-                <strong className="mono">$0.00</strong>
-              </div>
-            </div>
-            {error && (
-              <div className="notice error" role="alert">
-                {error}
-              </div>
-            )}
-            <button className="button primary full" disabled={!!busy || !canSend} type="submit">
-              {busy || "Confirm & send gift"}
-              <ArrowUpRight size={20} />
-            </button>
-            {!signedIn && (
-              <p className="microcopy">
-                {process.env.NEXT_PUBLIC_PRIVY_APP_ID
-                  ? "Sign in above, then confirm your sender account to continue."
-                  : "Sender sign-in is being set up. You can preview an envelope while services are connected."}
-              </p>
-            )}
-            {busy && (
-              <p role="status" className="microcopy">
-                {busy} Keep this tab open.
-              </p>
-            )}
-          </form>
+          )}
         </section>
         <div>
           <section className="panel">
             <div className="panel-heading">
-              <h2>{selected ? "Your gift&apos;s journey" : "Sealed with good wishes."}</h2>
+              <h2>{selected ? "Your gift's journey" : "Sealed with good wishes."}</h2>
               {selected && <StatusBadge gift={selected} />}
             </div>
             {selected ? (
               <div className="panel-body">
-                <p className="mono mb-4">${tokenAmount(selected.amount)}</p>
+                <AppEnvelope amount={tokenAmount(selected.amount, 0)} design={selected.design} />
                 <ReceiptTimeline gift={selected} />
                 {claimLink && selected.status === "sent" && (
                   <>
@@ -413,10 +300,24 @@ function SenderDashboard() {
                     {selected.error}
                   </p>
                 )}
+                <button
+                  className="button secondary small mt-4"
+                  onClick={() => {
+                    setSelected(null);
+                    setClaimLink("");
+                    setQr("");
+                  }}
+                >
+                  Send another gift
+                </button>
               </div>
             ) : (
               <>
-                <AppEnvelope amount={/^\d{1,3}$/.test(amount) ? amount : "25"} />
+                <AppEnvelope
+                  amount={draft.compact}
+                  design={draft.design}
+                  note={draft.message.trim()}
+                />
                 <div className="panel-body">
                   <ReturnNotice />
                 </div>

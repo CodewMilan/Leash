@@ -12,7 +12,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "format:check": "prettier --check 'src/lib/**/*.ts' 'src/components/shagun/{AppEnvelope,Claim,Dashboard,SenderContext,SenderProvider,Shared}.tsx' 'scripts/*' 'tests/*.ts' 'e2e/*.ts' '../db/**/*.ts'",
+    "format:check": "prettier --check 'src/lib/**/*.ts' 'src/components/shagun/{AppEnvelope,Claim,Dashboard,GiftComposer,SendWidget,SenderContext,SenderProvider,Shared}.tsx' 'src/components/shagun/giftFlow.ts' 'scripts/*' 'tests/*.ts' 'e2e/*.ts' '../db/**/*.ts'",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate.mts",
     "worker": "node --env-file-if-exists=.env.local --import tsx scripts/worker.mts",
@@ -21,6 +21,7 @@
     "contracts:build": "node scripts/compile-contracts.mjs",
     "contracts:deploy": "node --env-file-if-exists=.env.local --import tsx scripts/deploy-vault.mts",
     "test:e2e": "playwright test",
+    "test:live": "node --env-file-if-exists=.env.local --import tsx scripts/live-gift.mts",
     "prebuild": "vitest run"
   },
   "dependencies": {
