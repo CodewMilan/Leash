@@ -27,6 +27,12 @@ function Connection({ children }: { children: ReactNode }) {
   const { isOpen } = useModalStatus();
   const pending = useRef<Pending | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
+  const [session, setSession] = useState<string | null>(null);
+  useEffect(() => {
+    api<{ sender: string | null }>("session", {})
+      .then((s) => setSession(s.sender))
+      .catch(() => {});
+  }, []);
   const external = wallets.filter((w) => w.walletClientType !== "privy");
   const active = external.find((w) => w.address.toLowerCase() === chosen) || external[0] || null;
 
@@ -81,6 +87,7 @@ function Connection({ children }: { children: ReactNode }) {
       signature: await accountSigner.signMessage(challenge.message),
     });
     setChosen(address);
+    setSession(address);
     return address;
   }
   return (
@@ -88,7 +95,9 @@ function Connection({ children }: { children: ReactNode }) {
       value={{
         ready: ready && walletsReady,
         configured: true,
+        installed: true,
         account: active?.address.toLowerCase() || null,
+        session,
         wallet: active ? walletOption(active.walletClientType) : null,
         wallets: WALLETS,
         connect,
@@ -98,6 +107,7 @@ function Connection({ children }: { children: ReactNode }) {
         },
         logout: async () => {
           await api("auth/logout", {});
+          setSession(null);
           active?.disconnect();
           setChosen(null);
         },

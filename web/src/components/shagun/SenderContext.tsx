@@ -5,7 +5,12 @@ import type { WalletOption } from "@/lib/wallets";
 export type Sender = {
   ready: boolean;
   configured: boolean;
+  /** False when no supported wallet is present in this browser. */
+  installed: boolean;
+  /** Account the wallet currently exposes, or null when nothing is connected. */
   account: string | null;
+  /** Sender address of the signed-in Shagun session, or null when signed out. */
+  session: string | null;
   wallet: WalletOption | null;
   wallets: WalletOption[];
   connect: (walletId: string) => Promise<string | null>;

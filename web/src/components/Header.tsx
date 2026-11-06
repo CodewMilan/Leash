@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { FlipLink } from "@/components/FlipLink";
+import { WalletButton } from "@/components/WalletButton";
 import { EASE, gsap, useGSAP } from "@/lib/gsap";
 
 export const NAV = [
@@ -49,28 +50,32 @@ export function Header() {
         <Link href="/" aria-label="Shagun home">
           <Wordmark />
         </Link>
-        <nav aria-label="Main" className="absolute left-1/2 flex -translate-x-1/2 items-center gap-6 text-[15px]">
+        <nav aria-label="Main" className="ml-10 flex items-center gap-6 text-[15px] xl:absolute xl:left-1/2 xl:ml-0 xl:-translate-x-1/2">
           {NAV.map((item) => (
             <FlipLink key={item.href} href={item.href} label={item.label} />
           ))}
         </nav>
         <div className="ml-auto flex h-full items-center">
-          <FlipLink href="/dashboard" label="Dashboard" className="mr-6 text-[15px]" />
+          <FlipLink href="/dashboard" label="Dashboard" className="mr-2 px-4 text-[15px]" />
+          <WalletButton />
           <FlipLink href="/dashboard" label="Send a gift" className="flex h-full items-center bg-black-00 px-5 text-[15px] text-white-00" />
         </div>
       </div>
 
-      <div className="flex h-[var(--header-h)] items-center justify-between px-4 lg:hidden">
+      <div className="flex h-[var(--header-h)] items-center justify-between pl-4 lg:hidden">
         <Link href="/" aria-label="Shagun home">
           <Wordmark />
         </Link>
+        <div className="ml-auto h-full">
+          <WalletButton compact />
+        </div>
         <button
           type="button"
           aria-expanded={open}
           aria-controls="mobile-menu"
           aria-label={open ? "Close menu" : "Open menu"}
           onClick={() => setOpen((value) => !value)}
-          className="grid h-11 w-11 place-items-center"
+          className="grid h-full w-[52px] place-items-center border-l border-grey-02"
         >
           <span className="relative block h-3 w-5" aria-hidden="true">
             <span className="absolute left-0 h-[1.5px] w-full bg-ink" style={{ top: open ? 5 : 0, transform: open ? "rotate(45deg)" : "none" }} />
@@ -79,13 +84,16 @@ export function Header() {
           </span>
         </button>
       </div>
-      <div id="mobile-menu" ref={menuRef} className="flex-col gap-4 border-t border-grey-02 px-4 py-5 text-[22px] lg:hidden" style={{ display: "none" }}>
+      <div id="mobile-menu" ref={menuRef} className="flex-col border-t border-grey-02 px-4 py-3 text-[22px] lg:hidden" style={{ display: "none" }}>
         {NAV.map((item) => (
-          <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+          <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="flex min-h-12 items-center">
             {item.label}
           </Link>
         ))}
-        <Link href="/dashboard" onClick={() => setOpen(false)}>
+        <Link href="/dashboard" onClick={() => setOpen(false)} className="flex min-h-12 items-center">
+          Dashboard
+        </Link>
+        <Link href="/dashboard" onClick={() => setOpen(false)} className="mt-3 flex min-h-12 items-center justify-center bg-black-00 text-[17px] text-white-00">
           Send a gift
         </Link>
       </div>

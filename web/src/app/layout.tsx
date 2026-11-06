@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Urbanist } from "next/font/google";
+import { WalletProvider } from "@/components/shagun/WalletProvider";
 import "./globals.css";
 
 const urbanist = Urbanist({
@@ -21,7 +22,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${urbanist.variable} ${geistMono.variable} antialiased`}>
-      <body className="min-h-full"><a className="skip-link" href="#main">Skip to content</a>{children}</body>
+      <body className="min-h-full">
+        <a className="skip-link" href="#main">Skip to content</a>
+        <WalletProvider>{children}</WalletProvider>
+      </body>
     </html>
   );
 }

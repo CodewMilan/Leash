@@ -73,6 +73,13 @@ async function switchToWhitechain(provider: Injected) {
 export function InjectedSenderProvider({ children }: { children: ReactNode }) {
   const { provider, searched } = useMetaMask();
   const [account, setAccount] = useState<string | null>(null);
+  const [session, setSession] = useState<string | null>(null);
+
+  useEffect(() => {
+    api<{ sender: string | null }>("session", {})
+      .then((s) => setSession(s.sender))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!provider) return;
@@ -95,10 +102,8 @@ export function InjectedSenderProvider({ children }: { children: ReactNode }) {
 
   async function connect(walletId: string) {
     if (walletId !== METAMASK.id) throw new Error("Choose a supported wallet.");
-    if (!provider) {
-      window.open(METAMASK.installUrl, "_blank", "noopener");
+    if (!provider)
       throw new Error("MetaMask isn't installed in this browser. Install it, then reload this page.");
-    }
     const accounts: string[] = await provider.request({ method: "eth_requestAccounts" });
     if (!accounts[0]) throw new Error("Your wallet did not share an account.");
     await api("session", {});
@@ -112,11 +117,13 @@ export function InjectedSenderProvider({ children }: { children: ReactNode }) {
       signature: await accountSigner.signMessage(challenge.message),
     });
     setAccount(address);
+    setSession(address);
     return address;
   }
 
   async function logout() {
     await api("auth/logout", {});
+    setSession(null);
     await provider
       ?.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] })
       .catch(() => {});
@@ -128,7 +135,9 @@ export function InjectedSenderProvider({ children }: { children: ReactNode }) {
       value={{
         ready: searched,
         configured: true,
+        installed: !!provider,
         account,
+        session,
         wallet: account ? METAMASK : null,
         wallets: WALLETS,
         connect,

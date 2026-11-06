@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -10,29 +9,13 @@ import { tokenAmount } from "@/lib/amounts";
 import { api } from "@/lib/client-api";
 import type { AppStatus, GiftView } from "@/lib/types";
 import { useSender } from "./SenderContext";
-import { InjectedSenderProvider } from "./InjectedSenderProvider";
 import { claimLinkFor, walletMessage } from "./giftFlow";
 import { GiftComposer, useGiftDraft } from "./GiftComposer";
 import { AppEnvelope } from "./AppEnvelope";
 import { ReceiptTimeline, StatusBadge, TestBanner } from "./Shared";
 
-const SenderProvider = dynamic(() => import("./SenderProvider"), {
-  ssr: false,
-  loading: () => <div className="loading-block" aria-label="Loading wallet sign-in" />,
-});
-
 export function SendWidget() {
-  if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID)
-    return (
-      <InjectedSenderProvider>
-        <WidgetFlow />
-      </InjectedSenderProvider>
-    );
-  return (
-    <SenderProvider>
-      <WidgetFlow />
-    </SenderProvider>
-  );
+  return <WidgetFlow />;
 }
 
 function parentOrigin(value: string | null) {
@@ -58,7 +41,7 @@ function WidgetFlow() {
   });
   const campaignLocked = !!params.get("campaign");
   const [status, setStatus] = useState<AppStatus | null>(null);
-  const [from, setFrom] = useState<string | null>(null);
+  const from = sender.session;
   const [balance, setBalance] = useState<string | null>(null);
   const [gift, setGift] = useState<GiftView | null>(null);
   const [claimLink, setClaimLink] = useState("");
@@ -77,9 +60,6 @@ function WidgetFlow() {
   useEffect(() => {
     api<AppStatus>("status")
       .then(setStatus)
-      .catch(() => {});
-    api<{ sender: string | null }>("session", {})
-      .then((s) => setFrom(s.sender))
       .catch(() => {});
     post({ type: "ready" });
   }, [post]);
@@ -129,8 +109,7 @@ function WidgetFlow() {
     setBusy("Connecting your wallet…");
     setError("");
     try {
-      const account = await sender.connect(walletId);
-      if (account) setFrom(account);
+      await sender.connect(walletId);
     } catch (e) {
       setError(walletMessage(e, "Wallet sign-in could not complete."));
     } finally {

@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -11,7 +10,6 @@ import { tokenAmount } from "@/lib/amounts";
 import { api } from "@/lib/client-api";
 import type { AppStatus, GiftView } from "@/lib/types";
 import { useSender } from "./SenderContext";
-import { InjectedSenderProvider } from "./InjectedSenderProvider";
 import { claimLinkFor, forgetEnvelopes, walletMessage } from "./giftFlow";
 import { GiftComposer, useGiftDraft } from "./GiftComposer";
 import { AppEnvelope } from "./AppEnvelope";
@@ -24,23 +22,6 @@ import {
   TestBanner,
 } from "./Shared";
 
-const SenderProvider = dynamic(() => import("./SenderProvider"), {
-  ssr: false,
-  loading: () => <div className="loading-block" aria-label="Loading wallet sign-in" />,
-});
-export function Dashboard() {
-  if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID)
-    return (
-      <InjectedSenderProvider>
-        <SenderDashboard />
-      </InjectedSenderProvider>
-    );
-  return (
-    <SenderProvider>
-      <SenderDashboard />
-    </SenderProvider>
-  );
-}
 const ONBOARDING = [
   [
     "Connect MetaMask",
@@ -55,12 +36,12 @@ const ONBOARDING = [
     "Approve once in your wallet. Shagun pays the network fee, then gives you a private link to share.",
   ],
 ];
-function SenderDashboard() {
+export function Dashboard() {
   const sender = useSender();
   const params = useSearchParams();
   const draft = useGiftDraft({ amount: params.get("amount"), design: params.get("design") });
   const [status, setStatus] = useState<AppStatus | null>(null);
-  const [from, setFrom] = useState<string | null>(null);
+  const from = sender.session;
   const [balance, setBalance] = useState<string | null>(null);
   const [gifts, setGifts] = useState<GiftView[]>([]);
   const [selected, setSelected] = useState<GiftView | null>(null);
@@ -71,35 +52,32 @@ function SenderDashboard() {
   const [historyError, setHistoryError] = useState("");
   const [copied, setCopied] = useState(false);
   const refresh = useCallback(async () => {
+    if (!from) return;
     try {
-      const session = await api<{ sender: string | null }>("session");
-      setFrom(session.sender);
-      if (session.sender) {
-        const result = await api<{ gifts: GiftView[] }>("gifts");
-        setGifts(result.gifts);
-        setHistoryError("");
-        setSelected((current) =>
-          current ? result.gifts.find((g) => g.id === current.id) || current : null,
-        );
-      }
+      const result = await api<{ gifts: GiftView[] }>("gifts");
+      setGifts(result.gifts);
+      setHistoryError("");
+      setSelected((current) =>
+        current ? result.gifts.find((g) => g.id === current.id) || current : null,
+      );
     } catch (e) {
       setHistoryError(e instanceof Error ? e.message : "Could not refresh your gifts.");
     }
-  }, []);
+  }, [from]);
   useEffect(() => {
     api<AppStatus>("status")
       .then(setStatus)
       .catch(() => {});
-    api<{ sender: string | null }>("session", {})
-      .then((s) => {
-        setFrom(s.sender);
-        if (s.sender) void refresh();
-      })
-      .catch(() => {});
-    const timer = setInterval(() => {
+  }, []);
+  useEffect(() => {
+    const first = window.setTimeout(() => void refresh(), 0);
+    const timer = window.setInterval(() => {
       if (!document.hidden) void refresh();
     }, 8_000);
-    return () => clearInterval(timer);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
   }, [refresh]);
   const loadBalance = useCallback(() => {
     api<{ balance: string }>("balance")
@@ -122,11 +100,7 @@ function SenderDashboard() {
     setBusy("Connecting your wallet…");
     setError("");
     try {
-      const account = await sender.connect(walletId);
-      if (account) {
-        setFrom(account);
-        await refresh();
-      }
+      await sender.connect(walletId);
     } catch (e) {
       setError(walletMessage(e, "Wallet sign-in could not complete."));
     } finally {
@@ -136,7 +110,6 @@ function SenderDashboard() {
   async function logout() {
     try {
       await sender.logout();
-      setFrom(null);
       setGifts([]);
       setSelected(null);
       setClaimLink("");
@@ -147,6 +120,7 @@ function SenderDashboard() {
     }
   }
   const signedIn = from !== null && from === sender.account;
+  const history = from ? gifts : [];
   const mismatch = from !== null && sender.account !== null && from !== sender.account;
   const ready = !!status?.services
     .filter((s) => ["Gift storage", "Whitechain"].includes(s.name))
@@ -353,7 +327,7 @@ function SenderDashboard() {
             {historyError}
           </div>
         )}
-        {gifts.length === 0 ? (
+        {history.length === 0 ? (
           <EmptyGifts />
         ) : (
           <div className="table-scroll">
@@ -367,7 +341,7 @@ function SenderDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {gifts.map((gift) => (
+                {history.map((gift) => (
                   <tr key={gift.id}>
                     <td>
                       <button
