@@ -5,18 +5,12 @@ import { useRef, useState } from "react";
 import { FlipLink } from "@/components/FlipLink";
 import { EASE, gsap, useGSAP } from "@/lib/gsap";
 
-export const NAV = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#cases", label: "When it pays" },
-  { href: "/#hood", label: "Under the hood" },
-  { href: "/#rules", label: "Spend rules" },
-  { href: "/#inside", label: "What's inside" },
-];
+export const NAV = [{ href: "/dashboard", label: "Dashboard" }];
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center font-book text-[24px] font-semibold tracking-[-0.06em] ${className}`}>
-      leash
+      shagun
     </span>
   );
 }
@@ -55,7 +49,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-grey-02 bg-white-00">
       <div className="relative hidden h-[var(--header-h)] items-center lg:flex" style={{ paddingLeft: 70 }}>
-        <Link href="/" aria-label="Leash home">
+        <Link href="/" aria-label="Shagun home">
           <Wordmark />
         </Link>
         <nav
@@ -68,8 +62,6 @@ export function Header() {
           ))}
         </nav>
         <div className="ml-auto flex h-full items-center">
-          <FlipLink href="/fund" label="Top up" className="mr-[24px] hidden text-[15px] xl:inline-flex" />
-          <FlipLink href="/merchant" label="Merchants" className="mr-[30px] text-[15px]" />
           <FlipLink
             href="/dashboard"
             label="Open Dashboard"
@@ -79,7 +71,7 @@ export function Header() {
       </div>
 
       <div className="flex h-[44px] items-center justify-between pl-[15px] lg:hidden">
-        <Link href="/" aria-label="Leash home">
+        <Link href="/" aria-label="Shagun home">
           <Wordmark className="text-[20px]" />
         </Link>
         <div className="flex h-full items-center">
@@ -121,15 +113,6 @@ export function Header() {
             {item.label}
           </Link>
         ))}
-        <Link href="/dashboard" onClick={() => setOpen(false)}>
-          Live log
-        </Link>
-        <Link href="/fund" onClick={() => setOpen(false)}>
-          Top up your Leash
-        </Link>
-        <Link href="/merchant" onClick={() => setOpen(false)}>
-          For merchants
-        </Link>
       </div>
     </header>
   );

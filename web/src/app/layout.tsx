@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Leash · Your agent pays. Your thumb decides.",
+  title: "Shagun · A Diwali gift, received in UPI",
   description:
-    "A handheld AI assistant that pays for things for you, but can never spend over your limit without your thumb. Built with 0G, Hedera and World ID.",
+    "Send a Diwali gift in dollars. The recipient claims it with their phone and receives rupees in UPI. Unclaimed gifts return to the sender.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
