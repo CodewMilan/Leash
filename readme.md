@@ -7,6 +7,7 @@ Built at ETHGlobal Mumbai with **0G** (AI decisions and memory), **Hedera** (x40
 - Product, problem, prize requirements, hardware list and open decisions: [docs/context.md](docs/context.md)
 - Architecture and who signs what: [docs/architecture.md](docs/architecture.md)
 - Workflow diagram: [docs/workflow.md](docs/workflow.md)
+- Build plan to the deadline: [docs/plan.md](docs/plan.md)
 
 ## Repo layout
 

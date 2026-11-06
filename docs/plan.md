@@ -4,17 +4,17 @@ Hacking ends **Sat Nov 7, 09:00 IST**. Every phase ends with `pnpm check` green 
 
 Already done: landing page and dashboard (`web/`), first draft of the device agent (`device/`) and the x402 merchant (`merchant/`).
 
-## Phase 0: make it testable, no keys needed (Fri 12:00–15:00)
+## Phase 0: make it testable, no keys needed (Fri 12:00–15:00) — done
 
 - Split pure logic out of modules that read secrets on load, so it can be unit tested: spend policy, x402 transfer build and decode, 0G answer parsing, World ID claim checks, contacts, spend log entry, merchant pricing.
 - Unit tests with Vitest for each of those. Payment tests build and decode real Hedera transaction bytes with the Hedera SDK; nothing is faked.
 - Config reports every missing variable at once, so a half-filled `.env` fails in one go.
-- `pnpm doctor` on the device and merchant: calls each real service with your keys (0G, Hedera balances and USDC association, 0G Storage wallet, World client, facilitator) and prints what is wrong.
+- `pnpm preflight` on the device and merchant: calls each real service with your keys (0G, Hedera balances and USDC association, 0G Storage wallet, World client, facilitator) and prints what is wrong.
 - Root `pnpm check` runs everything; run it before every commit.
 
 ## Phase 1: first real payment from the laptop (as soon as keys land, ~1.5 h)
 
-1. Fill `.env`, run `pnpm doctor` until it's green.
+1. Fill `.env`, copy `device/contacts.example.json` to `device/contacts.json` (laptop IP, merchant account), run `pnpm preflight` in both folders until it's green.
 2. `merchant/`: `pnpm setup`, then `pnpm start`.
 3. `device/`: `pnpm setup:hedera` (USDC association, spend log topic), get USDC from faucet.circle.com.
 4. `LEASH_HARDWARE=none pnpm start`, then `pnpm ask "buy two chais"`: 0G decides, memory goes to 0G Storage, x402 payment settles, spend log entry is written.
