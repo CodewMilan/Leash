@@ -5,9 +5,13 @@ const client = await pool().connect();
 try {
   await client.query("BEGIN");
   await client.query("SELECT pg_advisory_xact_lock(1874,7071)");
-  await client.query("CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+  await client.query(
+    "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+  );
   for (const migration of migrations) {
-    const existing = await client.query("SELECT version FROM schema_migrations WHERE version=$1", [migration.version]);
+    const existing = await client.query("SELECT version FROM schema_migrations WHERE version=$1", [
+      migration.version,
+    ]);
     if (!existing.rowCount) {
       await client.query(migration.sql);
       await client.query("INSERT INTO schema_migrations(version) VALUES($1)", [migration.version]);
@@ -20,4 +24,7 @@ try {
   await client.query("ROLLBACK");
   console.error("Migration failed. Verify database access and the migration source.");
   process.exitCode = 1;
-} finally { client.release(); await pool().end(); }
+} finally {
+  client.release();
+  await pool().end();
+}

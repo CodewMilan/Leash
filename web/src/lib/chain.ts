@@ -5,26 +5,78 @@ export const WHITECHAIN = {
   name: "Whitechain Sepolia",
   nativeCurrency: { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 },
   rpcUrls: { default: { http: ["https://rpc.testnet.whitechain.io"] } },
-  blockExplorers: { default: { name: "Whitechain Explorer", url: "https://explorer.testnet.whitechain.io" } },
+  blockExplorers: {
+    default: { name: "Whitechain Explorer", url: "https://explorer.testnet.whitechain.io" },
+  },
   testnet: true,
 } as const;
 export const USDT_ADDRESS = "0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7";
-export const TOKEN_DOMAIN = { name: "Tether USD", version: "1", chainId: 1874, verifyingContract: USDT_ADDRESS };
-export const authorizationTypes = { ReceiveWithAuthorization: [
-  { name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" },
-  { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
-] };
-export const claimTypes = { Claim: [
-  { name: "giftId", type: "bytes32" }, { name: "human", type: "bytes32" }, { name: "session", type: "bytes32" },
-  { name: "nonce", type: "bytes32" }, { name: "deadline", type: "uint256" },
-] };
-export type GiftTerms = { from: string; amount: string; expiry: number; secretHash: string; boundHuman: string; campaignId: string; salt: string };
-export const TERMS_TYPEHASH = id("GiftTerms(uint256 chainId,address vault,address from,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 salt)");
+export const TOKEN_DOMAIN = {
+  name: "Tether USD",
+  version: "1",
+  chainId: 1874,
+  verifyingContract: USDT_ADDRESS,
+};
+export const authorizationTypes = {
+  ReceiveWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+};
+export const claimTypes = {
+  Claim: [
+    { name: "giftId", type: "bytes32" },
+    { name: "human", type: "bytes32" },
+    { name: "session", type: "bytes32" },
+    { name: "nonce", type: "bytes32" },
+    { name: "deadline", type: "uint256" },
+  ],
+};
+export type GiftTerms = {
+  from: string;
+  amount: string;
+  expiry: number;
+  secretHash: string;
+  boundHuman: string;
+  campaignId: string;
+  salt: string;
+};
+export const TERMS_TYPEHASH = id(
+  "GiftTerms(uint256 chainId,address vault,address from,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 salt)",
+);
 export function giftNonce(vault: string, t: GiftTerms, chainId = 1874) {
-  return keccak256(AbiCoder.defaultAbiCoder().encode(
-    ["bytes32", "uint256", "address", "address", "uint256", "uint256", "bytes32", "bytes32", "bytes32", "bytes32"],
-    [TERMS_TYPEHASH, chainId, vault, t.from, t.amount, t.expiry, t.secretHash, t.boundHuman, t.campaignId, t.salt],
-  ));
+  return keccak256(
+    AbiCoder.defaultAbiCoder().encode(
+      [
+        "bytes32",
+        "uint256",
+        "address",
+        "address",
+        "uint256",
+        "uint256",
+        "bytes32",
+        "bytes32",
+        "bytes32",
+        "bytes32",
+      ],
+      [
+        TERMS_TYPEHASH,
+        chainId,
+        vault,
+        t.from,
+        t.amount,
+        t.expiry,
+        t.secretHash,
+        t.boundHuman,
+        t.campaignId,
+        t.salt,
+      ],
+    ),
+  );
 }
 export const vaultAbi = [
   "function createGiftWithAuthorization((address from,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 salt) t,uint256 validAfter,uint256 validBefore,bytes signature) returns (bytes32)",
@@ -32,8 +84,10 @@ export const vaultAbi = [
   "function cashOut(bytes32 giftId,bytes32 payoutRef)",
   "function refundExpired(bytes32 giftId)",
   "function gifts(bytes32) view returns (address sender,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 human,uint8 state)",
-  "function usdt() view returns (address)", "function relayer() view returns (address)",
-  "function operator() view returns (address)", "function attester() view returns (address)",
+  "function usdt() view returns (address)",
+  "function relayer() view returns (address)",
+  "function operator() view returns (address)",
+  "function attester() view returns (address)",
   "event GiftCreated(bytes32 indexed giftId,address indexed sender,uint256 amount,uint256 expiry,bytes32 campaignId)",
   "event GiftClaimed(bytes32 indexed giftId,bytes32 indexed human)",
   "event CashOut(bytes32 indexed giftId,uint256 amount,bytes32 payoutRef)",

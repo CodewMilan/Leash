@@ -43,12 +43,15 @@ jobs:
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm format:check
       - run: pnpm contracts:build
       - run: pnpm db:migrate
       - run: pnpm db:migrate
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+        env:
+          E2E_USE_BUILD: .next
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -1,7 +1,8 @@
 {
-  "name": "web",
+  "name": "shagun-web",
   "version": "0.1.0",
   "private": true,
+  "engines": { "node": ">=22" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check 'src/lib/**/*.ts' 'src/components/shagun/{AppEnvelope,Claim,Dashboard,SenderContext,SenderProvider,Shared}.tsx' 'scripts/*' 'tests/*.ts' 'e2e/*.ts' '../db/**/*.ts'",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate.mts",
     "worker": "node --env-file-if-exists=.env.local --import tsx scripts/worker.mts",
@@ -19,12 +21,14 @@
     "prebuild": "vitest run"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.15",
     "@gsap/react": "^2.1.2",
     "@openzeppelin/contracts": "^5.0.2",
     "@privy-io/react-auth": "^3.51.3",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.0.3",
+    "@solana-program/system": "0.16.0",
+    "@solana-program/token": "0.16.1",
+    "@solana/kit": "8.6.0",
     "@worldcoin/idkit": "^4.6.0",
     "@worldcoin/idkit-core": "^4.6.0",
     "ethers": "^6.17.0",
@@ -38,6 +42,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.3.4",
     "@tailwindcss/turbopack": "^4",
@@ -49,6 +54,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "ganache": "^7.9.2",
+    "prettier": "^3.9.10",
     "solc": "^0.8.38",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

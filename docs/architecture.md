@@ -2,6 +2,8 @@
 
 Start here when joining the project. [context.md](./context.md) describes the product; this document describes the implemented boundaries. The [release checklist](./operations.md) records what still prevents a production launch.
 
+Use the [HTTP API reference](./api.md) for route contracts and the [developer guide](./development.md) for setup and contribution procedures.
+
 ## System diagram
 
 ```mermaid

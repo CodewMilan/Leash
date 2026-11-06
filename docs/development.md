@@ -36,6 +36,7 @@ An indicative rate is snapshotted per gift. Updating `PAYOUT_INR_PER_USDT` affec
 
 ```bash
 pnpm check                 # TypeScript, ESLint, contract and API tests
+pnpm format:check          # Formatting in shared application/backend modules
 pnpm contracts:build       # Compile the deployable vault and verification input
 pnpm build                 # Next.js production build
 ```
@@ -47,6 +48,8 @@ E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
 Install the Playwright browser with `pnpm exec playwright install chromium` if needed. Tests use a separate port (3100), `.next-e2e` directory, generated encryption key, and disabled external-service credentials. They seed explicitly test-only gift records and do not submit Whitechain transactions or payouts. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select an existing browser executable.
+
+Set `E2E_USE_BUILD=.next` to test an existing production build instead of starting a development watcher. Build with an empty `NEXT_PUBLIC_PRIVY_APP_ID` for this isolated setup-state suite; production sign-in needs a separately configured build and real provider checks. CI uses the production build for browser checks.
 
 To run a build beside another developer's preview, set `SHAGUN_BUILD_DIR=.next-build`. Default development and production commands still use `.next`.
 
