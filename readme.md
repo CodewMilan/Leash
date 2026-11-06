@@ -81,21 +81,26 @@ pnpm build
 E2E_DATABASE_URL=postgres://shagun:shagun@localhost:54329/shagun pnpm test:e2e
 ```
 
-## Stripe Issuing sandbox (Phase 0)
+## Lithic sandbox cards (Phase 0)
 
-The card path follows [stripe-phase-plan.md](docs/stripe-phase-plan.md). Phase 0 proves account access only; claims do not issue cards yet. Only `sk_test_`/`rk_test_` and `pk_test_` keys are accepted, and any `livemode: true` object or event is rejected.
+The card path follows [card-phase-plan.md](docs/card-phase-plan.md). Phase 0 proves sandbox access only; claims do not issue cards yet. The server only ever calls `https://sandbox.lithic.com`, so a production key cannot be used by mistake.
+
+Lithic has to reach the webhooks over public HTTPS, so run the site behind a tunnel (for example `cloudflared tunnel --url http://localhost:3000`) and set `APP_URL` to the tunnel URL. The card frames also need that HTTPS origin, so open `/dev/card` through the tunnel too.
 
 ```bash
 cd web
-# Set STRIPE_SECRET_KEY and NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in .env.local first.
-pnpm stripe:phase0 check            # sandbox Issuing balance
-pnpm stripe:phase0 fund 10000       # US accounts: add $100 of test funds
-pnpm stripe:phase0 card             # create + activate a $25 virtual card, prints STRIPE_PHASE0_CARD_ID
-pnpm stripe:phase0 authorize 800 --capture
-pnpm stripe:phase0 authorize 3000   # over budget, expect a decline
+# Set LITHIC_API_KEY (sandbox) in .env.local first.
+pnpm lithic:phase0 check                         # key works, ASA enrollment status
+pnpm lithic:phase0 enroll https://<tunnel>       # ASA → /api/webhooks/lithic/asa, saves LITHIC_ASA_SECRET
+pnpm lithic:phase0 subscribe https://<tunnel>    # events → /api/webhooks/lithic/events, saves LITHIC_EVENTS_SECRET
+pnpm lithic:phase0 card                          # $25 lifetime-limit virtual Mastercard (add --visa for Visa), saves LITHIC_PHASE0_CARD_TOKEN
+pnpm lithic:phase0 authorize 800 --clear         # approve through ASA, then settle
+pnpm lithic:phase0 authorize 3000                # over budget, expect a decline
 ```
 
-Webhooks: `/api/webhooks/stripe/authorization` answers `issuing_authorization.request` within the two-second window (signed with `STRIPE_AUTHORIZATION_WEBHOOK_SECRET`); `/api/webhooks/stripe/events` records lifecycle events once (`STRIPE_EVENTS_WEBHOOK_SECRET`). Locally, forward them with the Stripe CLI (`stripe listen --forward-to localhost:3000/api/webhooks/stripe/authorization`) and set the Issuing real-time authorization endpoint in the sandbox Dashboard. In development, `/dev/card` shows the Phase 0 card through Stripe Issuing Elements; it needs a session, so the database must be running.
+The script writes secrets and the card token into `web/.env.local` and never prints them. Restart the dev server after it saves something.
+
+Webhooks: `/api/webhooks/lithic/asa` answers Auth Stream Access requests with `{ token, result }` (signed with `LITHIC_ASA_SECRET`; anything other than a valid Phase 0 USD purchase within $25 is declined). `/api/webhooks/lithic/events` records each event once (`LITHIC_EVENTS_SECRET`). In development, `/dev/card` shows the Phase 0 card through Lithic's hosted card frames (`lithic-embed`, sandbox mode); it needs a session, so the database must be running.
 
 Use `pnpm exec playwright install chromium` once if no browser is installed. Browser tests isolate their server on port 3100 and a separate build directory. CI runs type/lint/tests, compilation, migrations, production build and browser checks without real provider credentials.
 

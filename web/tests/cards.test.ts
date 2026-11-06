@@ -1,64 +1,75 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { migrations } from "../../db/migrations";
 import { handleApi } from "../src/lib/server/api";
 import { setTestDatabase, sql } from "../src/lib/server/db";
-import { STRIPE_API_VERSION, stripe } from "../src/lib/server/cards/stripe";
 import { PHASE0_PURPOSE } from "../src/lib/server/cards/webhooks";
 
-const authorizationSecret = `whsec_${randomBytes(16).toString("hex")}`;
-const eventsSecret = `whsec_${randomBytes(16).toString("hex")}`;
+const asaSecret = `whsec_${randomBytes(24).toString("base64")}`;
+const eventsSecret = `whsec_${randomBytes(24).toString("base64")}`;
 
-function authorizationEvent(
-  overrides: { amount?: number; currency?: string; purpose?: string; livemode?: boolean } = {},
+function asaRequest(
+  overrides: { amount?: number; currency?: string; purpose?: string; status?: string } = {},
 ) {
+  const amount = overrides.amount ?? 800;
   return {
-    id: `evt_${randomBytes(6).toString("hex")}`,
-    object: "event",
-    type: "issuing_authorization.request",
-    livemode: overrides.livemode ?? false,
-    data: {
-      object: {
-        id: "iauth_fixture",
-        object: "issuing_authorization",
-        livemode: overrides.livemode ?? false,
-        approved: false,
-        amount: 0,
-        card: {
-          id: "ic_fixture",
-          brand: "Visa",
-          metadata: { purpose: overrides.purpose ?? PHASE0_PURPOSE },
-        },
-        pending_request: { amount: overrides.amount ?? 800, currency: overrides.currency ?? "usd" },
-        merchant_data: { category: "gift_card_novelty_and_souvenir_shops" },
-      },
+    token: randomUUID(),
+    status: overrides.status ?? "AUTHORIZATION",
+    amount,
+    cardholder_currency: overrides.currency ?? "USD",
+    amounts: {
+      cardholder: { amount, currency: overrides.currency ?? "USD", conversion_rate: "1.0" },
+      merchant: { amount, currency: overrides.currency ?? "USD" },
     },
+    card: {
+      token: randomUUID(),
+      last_four: "4142",
+      memo: "Shagun Phase 0 sandbox",
+      spend_limit: 2_500,
+      spend_limit_duration: "FOREVER",
+      state: "OPEN",
+      type: "VIRTUAL",
+      tags: { purpose: overrides.purpose ?? PHASE0_PURPOSE },
+    },
+    merchant: { mcc: "5947", descriptor: "Shagun Test Merchant", country: "USA" },
   };
 }
 
-function signed(path: string, event: unknown, secret: string, signature?: string) {
-  const payload = JSON.stringify(event);
+function signature(id: string, timestamp: number, body: string, secret: string) {
+  const key = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+  return `v1,${createHmac("sha256", key).update(`${id}.${timestamp}.${body}`).digest("base64")}`;
+}
+
+function signed(
+  path: string,
+  payload: unknown,
+  secret: string,
+  options: { id?: string; timestamp?: number; signature?: string } = {},
+) {
+  const body = JSON.stringify(payload);
+  const id = options.id ?? `msg_${randomBytes(8).toString("hex")}`;
+  const timestamp = options.timestamp ?? Math.floor(Date.now() / 1000);
   return handleApi(
     new Request(`http://localhost:3000/api/${path}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "stripe-signature":
-          signature ?? stripe().webhooks.generateTestHeaderString({ payload, secret }),
+        "webhook-id": id,
+        "webhook-timestamp": String(timestamp),
+        "webhook-signature": options.signature ?? signature(id, timestamp, body, secret),
       },
-      body: payload,
+      body,
     }),
   );
 }
 
-describe("Stripe Issuing sandbox webhooks", () => {
+describe("Lithic sandbox webhooks", () => {
   let db: PGlite;
   beforeAll(async () => {
     vi.stubEnv("APP_URL", "http://localhost:3000");
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_fixture");
-    vi.stubEnv("STRIPE_AUTHORIZATION_WEBHOOK_SECRET", authorizationSecret);
-    vi.stubEnv("STRIPE_EVENTS_WEBHOOK_SECRET", eventsSecret);
+    vi.stubEnv("LITHIC_ASA_SECRET", asaSecret);
+    vi.stubEnv("LITHIC_EVENTS_SECRET", eventsSecret);
     db = new PGlite();
     for (const migration of migrations) await db.exec(migration.sql);
     setTestDatabase(db);
@@ -75,57 +86,75 @@ describe("Stripe Issuing sandbox webhooks", () => {
     vi.restoreAllMocks();
   });
 
-  it("approves a sandbox USD purchase within the Phase 0 budget and pins the API version", async () => {
-    const response = await signed(
-      "webhooks/stripe/authorization",
-      authorizationEvent(),
-      authorizationSecret,
-    );
+  it("approves a sandbox USD purchase within the Phase 0 budget and echoes the token", async () => {
+    const request = asaRequest();
+    const response = await signed("webhooks/lithic/asa", request, asaSecret);
     expect(response.status).toBe(200);
-    expect(response.headers.get("stripe-version")).toBe(STRIPE_API_VERSION);
-    expect(await response.json()).toEqual({ approved: true });
+    expect(await response.json()).toEqual({ token: request.token, result: "APPROVED" });
   });
 
-  it("declines over-budget, non-USD and unknown-card requests", async () => {
-    for (const overrides of [{ amount: 2_501 }, { currency: "eur" }, { purpose: "someone-else" }]) {
-      const response = await signed(
-        "webhooks/stripe/authorization",
-        authorizationEvent(overrides),
-        authorizationSecret,
-      );
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ approved: false });
+  it("gives the same answer when Lithic retries the same request", async () => {
+    const request = asaRequest();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await signed("webhooks/lithic/asa", request, asaSecret, { id: "msg_retry" });
+      expect(await response.json()).toEqual({ token: request.token, result: "APPROVED" });
     }
   });
 
-  it("rejects bad signatures, the wrong endpoint secret and live events", async () => {
-    const event = authorizationEvent();
-    expect(
-      (await signed("webhooks/stripe/authorization", event, authorizationSecret, "t=1,v1=bad"))
-        .status,
-    ).toBe(400);
-    expect((await signed("webhooks/stripe/authorization", event, eventsSecret)).status).toBe(400);
-    expect(
-      (
-        await signed(
-          "webhooks/stripe/authorization",
-          authorizationEvent({ livemode: true }),
-          authorizationSecret,
-        )
-      ).status,
-    ).toBe(403);
+  it("declines over-budget, non-USD, unknown-card and balance-inquiry requests", async () => {
+    const cases = [
+      [{ amount: 2_501 }, "INSUFFICIENT_FUNDS"],
+      [{ currency: "EUR" }, "UNAUTHORIZED_MERCHANT"],
+      [{ purpose: "someone-else" }, "UNAUTHORIZED_MERCHANT"],
+      [{ status: "BALANCE_INQUIRY" }, "UNAUTHORIZED_MERCHANT"],
+    ] as const;
+    for (const [overrides, result] of cases) {
+      const response = await signed("webhooks/lithic/asa", asaRequest(overrides), asaSecret);
+      expect(response.status).toBe(200);
+      expect((await response.json()).result).toBe(result);
+    }
   });
 
-  it("records each lifecycle event once", async () => {
+  it("declines a signed but malformed request instead of erroring", async () => {
+    const token = randomUUID();
+    const response = await signed("webhooks/lithic/asa", { token, amount: "lots" }, asaSecret);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ token, result: "UNAUTHORIZED_MERCHANT" });
+  });
+
+  it("rejects bad signatures, the wrong secret and stale timestamps", async () => {
+    const request = asaRequest();
+    expect(
+      (await signed("webhooks/lithic/asa", request, asaSecret, { signature: "v1,bad" })).status,
+    ).toBe(400);
+    expect((await signed("webhooks/lithic/asa", request, eventsSecret)).status).toBe(400);
+    const stale = Math.floor(Date.now() / 1000) - 10 * 60;
+    expect(
+      (await signed("webhooks/lithic/asa", request, asaSecret, { timestamp: stale })).status,
+    ).toBe(400);
+  });
+
+  it("accepts any matching signature in a rotated header", async () => {
+    const request = asaRequest();
+    const body = JSON.stringify(request);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const valid = signature("msg_rotated", timestamp, body, asaSecret);
+    const response = await signed("webhooks/lithic/asa", request, asaSecret, {
+      id: "msg_rotated",
+      timestamp,
+      signature: `v1,b2xkc2lnbmF0dXJl ${valid}`,
+    });
+    expect(response.status).toBe(200);
+  });
+
+  it("records each event once", async () => {
     const event = {
-      id: "evt_lifecycle",
-      object: "event",
-      type: "issuing_authorization.created",
-      livemode: false,
-      data: { object: { id: "iauth_fixture", object: "issuing_authorization", status: "pending" } },
+      event_type: "card_transaction.updated",
+      payload: { token: randomUUID(), status: "PENDING" },
     };
-    expect((await signed("webhooks/stripe/events", event, eventsSecret)).status).toBe(200);
-    expect((await signed("webhooks/stripe/events", event, eventsSecret)).status).toBe(200);
-    expect(await sql("SELECT id FROM webhook_events")).toEqual([{ id: "stripe:evt_lifecycle" }]);
+    const options = { id: "msg_lifecycle" };
+    expect((await signed("webhooks/lithic/events", event, eventsSecret, options)).status).toBe(200);
+    expect((await signed("webhooks/lithic/events", event, eventsSecret, options)).status).toBe(200);
+    expect(await sql("SELECT id FROM webhook_events")).toEqual([{ id: "lithic:msg_lifecycle" }]);
   });
 });

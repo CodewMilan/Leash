@@ -32,9 +32,6 @@ importers:
       '@solana/kit':
         specifier: 8.6.0
         version: 8.6.0(bufferutil@4.0.7)(typescript@5.9.3)(utf-8-validate@6.0.3)
-      '@stripe/stripe-js':
-        specifier: ^10.2.1
-        version: 10.2.1
       '@worldcoin/idkit':
         specifier: ^4.6.0
         version: 4.6.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -47,6 +44,9 @@ importers:
       gsap:
         specifier: ^3.15.1
         version: 3.15.1
+      lithic-embed:
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       lucide-react:
         specifier: ^1.70.0
         version: 1.70.0(@types/react@19.3.0)(react@19.3.0)
@@ -65,9 +65,6 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
-      stripe:
-        specifier: ^23.1.0
-        version: 23.1.0(@types/node@20.19.43)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -4341,6 +4338,9 @@ packages:
   lit@3.3.0:
     resolution: {integrity: sha512-DGVsqsOIHBww2DqnuZzW7QsuCdahp50ojuDaBPC7jUDRpYoH0z7kHBBYZewRzer75FwtrkmkKk7iOAwSaWdBmw==}
 
+  lithic-embed@0.1.0-beta.2:
+    resolution: {integrity: sha512-M/ASbrOG0PRW5hTW4UFnq2yIAIq+BYCNz4gSyPcHJyEzH9p6WGxciEZ8b7/YMXHUvrMzsBkc/NHpyUcuirjcOg==}
+
   locate-path@5.0.0:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
     engines: {node: '>=8'}
@@ -5414,14 +5414,8 @@ packages:
   strip-literal@3.1.0:
     resolution: {integrity: sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==}
 
-  stripe@23.1.0:
-    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@types/node': '>=20'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
+  style-observer@0.1.2:
+    resolution: {integrity: sha512-VdGkVx7dGqEzosau63CI33vRJsAGKPJCXyS9f5ze7gFbgsXm0wt5liXUNB9+YjyfhMyD+iTwNa7sM4cvpP3N9Q==}
 
   styled-components@6.6.0:
     resolution: {integrity: sha512-drKKsqvDBxVRn4ySU67iQ5nQBuo/1xyYeBfdhDde112PkqrS3+95KPnpDs5hFRcmrW+q6+gbyywYYYR14oWFtw==}
@@ -12334,6 +12328,11 @@ snapshots:
       lit-element: 4.2.2
       lit-html: 3.3.3
 
+  lithic-embed@0.1.0-beta.2:
+    dependencies:
+      csstype: 3.2.3
+      style-observer: 0.1.2
+
   locate-path@5.0.0:
     dependencies:
       p-locate: 4.1.0
@@ -13767,9 +13766,7 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  stripe@23.1.0(@types/node@20.19.43):
-    optionalDependencies:
-      '@types/node': 20.19.43
+  style-observer@0.1.2: {}
 
   styled-components@6.6.0(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(bufferutil@4.0.7)(react@19.3.0)(utf-8-validate@6.0.3))(react@19.3.0):
     dependencies:

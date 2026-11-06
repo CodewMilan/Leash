@@ -8,7 +8,7 @@ import { claimGift } from "./gifts/claim";
 import { readResource } from "./http/read";
 import { json, readJson } from "./http/response";
 import { receiveWebhook } from "./payouts/razorpay";
-import { receiveAuthorizationRequest, receiveIssuingEvent } from "./cards/webhooks";
+import { receiveAuthorizationRequest, receiveLithicEvent } from "./cards/webhooks";
 import { phase0Post, readPhase0 } from "./cards/phase0";
 import { sql } from "./db";
 
@@ -30,10 +30,10 @@ export async function handleApi(request: Request): Promise<Response> {
     }
     if (request.method === "POST" && path === "webhooks/razorpay")
       return await receiveWebhook(request);
-    if (request.method === "POST" && path === "webhooks/stripe/authorization")
+    if (request.method === "POST" && path === "webhooks/lithic/asa")
       return await receiveAuthorizationRequest(request);
-    if (request.method === "POST" && path === "webhooks/stripe/events")
-      return await receiveIssuingEvent(request);
+    if (request.method === "POST" && path === "webhooks/lithic/events")
+      return await receiveLithicEvent(request);
     if (request.method === "POST" && request.headers.get("origin") !== appOrigin())
       throw new AppError("Request origin is not allowed.", 403);
     if (request.method === "POST" && path === "session") {
@@ -62,7 +62,7 @@ export async function handleApi(request: Request): Promise<Response> {
         (await authenticate(path, current, data)) ||
         (await createGift(path, current, data)) ||
         (await claimGift(path, current, data)) ||
-        (await phase0Post(path, data));
+        (await phase0Post(path));
       if (result) return result;
     } else throw new AppError("Method not supported.", 405);
     throw new AppError("Page not found.", 404);

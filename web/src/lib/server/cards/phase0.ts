@@ -1,8 +1,19 @@
-import { z } from "zod";
-import { AppError, required } from "../config";
+import { AppError, appOrigin, required } from "../config";
 import { json } from "../http/response";
-import { STRIPE_API_VERSION, assertSandbox, stripe } from "./stripe";
+import { lithic } from "./lithic";
 import { PHASE0_PURPOSE } from "./webhooks";
+
+type LithicCard = {
+  token: string;
+  type: string;
+  state: string;
+  last_four: string;
+  exp_month?: string;
+  exp_year?: string;
+  spend_limit: number;
+  spend_limit_duration: string;
+  tags?: Record<string, string> | null;
+};
 
 function enabled() {
   if (process.env.NODE_ENV === "production") throw new AppError("Page not found.", 404);
@@ -10,9 +21,10 @@ function enabled() {
 
 async function phase0Card() {
   enabled();
-  const card = await stripe().issuing.cards.retrieve(required("STRIPE_PHASE0_CARD_ID"));
-  assertSandbox(card);
-  if (card.metadata?.purpose !== PHASE0_PURPOSE || card.type !== "virtual")
+  const card = await lithic<LithicCard>(
+    `cards/${encodeURIComponent(required("LITHIC_PHASE0_CARD_TOKEN"))}`,
+  );
+  if (card.tags?.purpose !== PHASE0_PURPOSE || card.type !== "VIRTUAL")
     throw new AppError("The configured card is not the Phase 0 sandbox card.", 503);
   return card;
 }
@@ -20,28 +32,29 @@ async function phase0Card() {
 export async function readPhase0(path: string) {
   if (path !== "cards/phase0") return null;
   const card = await phase0Card();
-  const limit = card.spending_controls.spending_limits?.find((l) => l.interval === "all_time");
   return json({
-    cardId: card.id,
-    brand: card.brand,
-    last4: card.last4,
-    expMonth: card.exp_month,
-    expYear: card.exp_year,
-    status: card.status,
-    currency: card.currency,
-    allTimeLimit: limit?.amount ?? null,
-    publishableKey: required("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"),
+    cardToken: card.token,
+    lastFour: card.last_four,
+    expMonth: card.exp_month ?? null,
+    expYear: card.exp_year ?? null,
+    state: card.state,
+    spendLimit: card.spend_limit,
+    spendLimitDuration: card.spend_limit_duration,
   });
 }
 
-export async function phase0Post(path: string, data: Record<string, unknown>) {
-  if (path !== "cards/phase0/ephemeral-key") return null;
+export async function phase0Post(path: string) {
+  if (path !== "cards/phase0/embed") return null;
   const card = await phase0Card();
-  const { nonce } = z.object({ nonce: z.string().min(8).max(500) }).parse(data);
-  const key = await stripe().ephemeralKeys.create(
-    { nonce, issuing_card: card.id },
-    { apiVersion: STRIPE_API_VERSION },
+  const { session } = await lithic<{ session: string }>(
+    `cards/${encodeURIComponent(card.token)}/embed`,
+    {
+      body: {
+        type: "CARD_EMBED",
+        target_origin: appOrigin(),
+        expiration: Math.floor(Date.now() / 1000) + 5 * 60,
+      },
+    },
   );
-  if (!key.secret) throw new AppError("Stripe did not return an ephemeral key.", 503);
-  return json({ ephemeralKeySecret: key.secret, expires: key.expires });
+  return json({ session });
 }
