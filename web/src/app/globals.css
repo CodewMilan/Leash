@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+@theme {
+  --color-white-00: #fafafa;
+  --color-grey-01: #ededed;
+  --color-grey-02: #e5e5e5;
+  --color-grey-03: #b2b2b2;
+  --color-grey-04: #595959;
+  --color-black-00: #1f1f1f;
+  --color-ink: #262626;
+  --color-off: #e1e1e1;
+  --color-blue-00: #2d4ff9;
+  --color-blue-03: #193ef9;
+  --color-green-00: #36d972;
+  --color-green-ink: #006023;
+  --color-pink-00: #f955b2;
+  --color-pink-03: #f631bc;
+  --color-pink-05: #ffbfec;
+  --color-orange-00: #ff942e;
+  --color-purple-00: #a199ff;
+  --color-purple-ink: #4c3dff;
+  --color-red-00: #ff3f3f;
+  --color-red-05: #ffc0c0;
+  --color-lime-02: #a4bf4d;
+}
+
+@theme inline {
+  --font-book: var(--font-urbanist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+:root {
+  --header-h: 50px;
+  --rail-w: 158px;
+  --gutter: 50px;
+}
+
+html {
+  background: var(--color-white-00);
+}
+
+body {
+  background: var(--color-white-00);
+  color: var(--color-ink);
+  font-family: var(--font-book);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-pink-05);
+  color: var(--color-ink);
+}
+
+/* Section tag: mono label boxed onto the section's top rule */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--color-grey-02);
+  border-bottom: 0;
+  background: var(--color-white-00);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.display-1 {
+  font-size: clamp(56px, min(calc(11.72vw - 31px), 13vh), 130px);
+  line-height: 0.88;
+  letter-spacing: -0.055em;
+}
+
+.display-2 {
+  font-size: clamp(36px, 4.3vw, 68px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.display-3 {
+  font-size: clamp(30px, 3.4vw, 54px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.statement {
+  font-size: clamp(28px, 3.1vw, 50px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+/* Starting states for entrance animations, so nothing flashes before GSAP runs */
+.hero-letter {
+  display: inline-block;
+  transform: translateY(125%);
+}
+.hero-follow {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.hero-media {
+  width: 0;
+  margin-left: 0.18em;
+}
+.send-arrow-enter {
+  transform: translateY(50%);
+}
+
+.flip-letter {
+  display: inline-block;
+  white-space: pre;
+  transform-origin: 50% 50% -11px;
+  backface-visibility: hidden;
+}
+.flip-host {
+  perspective: 150px;
+}
+
+.caret {
+  display: inline-block;
+  width: 1px;
+  height: 1.1em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: caret-blink 1s steps(1) infinite;
+}
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.dot-grid {
+  background-image: radial-gradient(var(--color-grey-02) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Square-thumb slider, matching the control panels */
+.leash-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  background: transparent;
+  cursor: pointer;
+}
+.leash-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    var(--color-ink) 0,
+    var(--color-ink) var(--fill, 50%),
+    var(--color-grey-02) var(--fill, 50%)
+  );
+}
+.leash-range::-moz-range-track {
+  height: 3px;
+  background: var(--color-grey-02);
+}
+.leash-range::-moz-range-progress {
+  height: 3px;
+  background: var(--color-ink);
+}
+.leash-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 8px;
+  height: 14px;
+  margin-top: -5.5px;
+  background: var(--color-ink);
+  border: 0;
+  border-radius: 0;
+}
+.leash-range::-moz-range-thumb {
+  width: 8px;
+  height: 14px;
+  background: var(--color-ink);
+  border: 0;
+  border-radius: 0;
+}
+.leash-range:focus-visible {
+  outline: 1px solid var(--color-blue-00);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-letter,
+  .hero-follow,
+  .send-arrow-enter {
+    transform: none;
+    opacity: 1;
+  }
+  .hero-media {
+    width: 1.061em;
+    margin-left: 0;
+  }
+  .caret {
+    animation: none;
+  }
+}

@@ -20,11 +20,13 @@ Leash is a handheld AI assistant that pays for things for you but can never spen
 
 1. You press a button and speak ("pay the photographer 20 dollars"); optionally point the camera at a bill or QR code.
 2. The device turns speech into text locally (Whisper) and reads QR codes.
-3. The 0G AI makes the decision and returns a receipt (request ID).
-4. The decision is saved to 0G Storage as memory.
-5. Under the spending limit: pays automatically. Over it: device buzzes, its own screen shows the real amount and recipient, you press your thumb on the fingerprint sensor (security chip signs), then a fresh World ID Agent Pass check on your phone. Both must be valid.
-6. Payment goes over x402 in USDC on Hedera; receipt on HashScan plus an entry in an HCS topic (spending log).
+3. The device asks the 0G AI, which makes the decision and returns a receipt (request ID).
+4. The device signs and saves the decision to 0G Storage as memory.
+5. Under the spending limit: the device signs the payment automatically. Over it: device buzzes, its own screen shows the amount and recipient read from the payment it is about to sign, you press your thumb on the fingerprint sensor, then a fresh World ID Agent Pass check on your phone. Both must be valid before the device signs.
+6. Payment goes over x402 in USDC on Hedera; receipt on HashScan plus a device-signed entry in an HCS topic (spending log).
 7. If 0G is unreachable: red light, "brain offline", it can still talk but will not pay.
+
+**Core design: 0G does the thinking, the device does all the signing.** The device runs the agent, enforces the limit and holds every key that moves money or writes records. The laptop only runs the demo merchant and a read-only dashboard. See [architecture.md](./architecture.md).
 
 **One-liner:** "AI agents can now spend your money, and they can be tricked into it. Leash keeps the AI in charge of thinking and your thumb in charge of paying."
 
@@ -32,9 +34,10 @@ Leash is a handheld AI assistant that pays for things for you but can never spen
 
 **Why not a Ledger:** Ledger makes you approve every transaction (useless for an agent spending all day) and only shows what the transaction says. Leash auto-pays small amounts under a limit, only asks for big ones, and checks the payment against what you said and what its camera saw. Ledger protects keys; Leash protects the agent's decisions.
 
-## Workflow diagram
+## Diagrams
 
-See [workflow.md](./workflow.md).
+- Workflow (plain language): [workflow.md](./workflow.md)
+- Architecture and who signs what: [architecture.md](./architecture.md)
 
 ## Prize targets (3 partner picks)
 
@@ -53,7 +56,7 @@ Rough judgment call: ceiling about $14–16k including finalist, expected about 
 
 - **ERC-7730 + EIP-712 (clear signing):** the device decodes and shows the payment in plain words on its own screen. Do this.
 - **ERC-8004 (Trustless Agents):** on-chain identity for Leash; validation records point to 0G receipts. Hedera extra points. Do this.
-- **EIP-7951 (P-256 verify precompile):** the security chip signs with P-256; verify on-chain. Unverified whether Hedera EVM supports it; check early, else verify in Solidity or server-side.
+- **EIP-7951 (P-256 verify precompile):** only relevant if the security chip is used, and then only for device identity, not payments. The chip (P-256 only) cannot sign Hedera transactions, since Hedera accounts use Ed25519 or secp256k1 keys.
 - **Avoid EIP-7702** for the spending limit: it was the Binance attack path.
 
 ## Hardware (bill of materials, rough INR)
@@ -67,7 +70,7 @@ Rough judgment call: ceiling about $14–16k including finalist, expected about 
 | MAX98357A + 3 W speaker, or USB speaker | Spoken confirmations | 300–500 |
 | 3.5" HDMI/SPI display (+ micro-HDMI cable) | Shows real amount and recipient | 1,500–2,500 |
 | R503 (preferred), R307 or AS608 fingerprint sensor + CP2102/CH340 USB-serial | Thumb approval (check AS608 voltage: often 3.3 V only) | 850–1,450 |
-| ATECC608A breakout (alt: Infineon OPTIGA, SparkFun crypto co-processor) | Locked device key | 300–800 |
+| ATECC608A breakout (alt: Infineon OPTIGA, SparkFun crypto co-processor) | Optional: device identity key only, not on the payment path | 300–800 |
 | 3 buttons, RGB LED / WS2812 ring, coin vibration motor + 2N2222 + diode | Talk / approve / cancel, status, buzz | 200–350 |
 | 15 W+ USB-C power bank (10,000 mAh) or Pi UPS HAT | Runs in hand | 1,200–2,000 |
 | Jumpers, headers, perfboard, case, standoffs | Assembly | 650–1,300 |
@@ -78,17 +81,19 @@ Total about ₹16–21k. Also needed: a phone with a verified World App, a lapto
 
 | Runs locally on the Pi | Runs on 0G |
 |---|---|
-| Push-to-talk, Whisper speech-to-text, QR reading, short spoken replies, answering in safe mode | Every decision that moves money, vision on the bill/photo, memory (0G Storage) |
+| Push-to-talk, Whisper speech-to-text, QR reading, short spoken replies, answering in safe mode, spending limit check, signing every payment, memory upload and spend log entry | Every decision that moves money, vision on the bill/photo, memory (0G Storage) |
+
+Keys are files on the Pi for the demo. Production would keep them in a secure element together with the fingerprint check.
 
 ## Credentials needed (environment variables)
 
-See `.env.example`. Priority order: Hedera testnet accounts + testnet USDC (token `0.0.429274`), 0G Private Computer API key + 0G wallet with Galileo testnet tokens, World Agent Pass client ID/secret, a verified World App on a phone.
+See `.env.example`. The device's `.env` holds the 0G, Hedera wallet and World credentials; the laptop's holds only the merchant account. Priority order: Hedera testnet accounts + testnet USDC (token `0.0.429274`), 0G Private Computer API key + 0G wallet with Galileo testnet tokens, World Agent Pass client ID/secret, a verified World App on a phone.
 
 ## Open decisions
 
 1. Team split (hardware / payments / AI / frontend).
 2. Board: **Raspberry Pi 4 (decided)**.
-3. Stack: default TypeScript/Node for the server and dashboard, Python on the Pi.
+3. Stack: default TypeScript/Node for the agent app on the Pi (0G, Hedera, World, signing) and for the merchant and dashboard on the laptop; Python on the Pi only for hardware drivers if easier.
 4. Demo merchants: default a "chai stall" and a "photo print" x402 endpoint.
 5. Demo spending limit: default 5 USDC.
 
