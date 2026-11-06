@@ -92,13 +92,15 @@ Optional alternative: RazorpayX UPI test payout (one redemption mode per gift)
 - **Sender wallet:** an embedded EOA (generated in the browser and protected by a passkey-encrypted backup, or a provider such as Privy or Dynamic if it supports a custom chain 1874). It holds test USDT from the faucet and never needs WBT.
 - **Recipient:** never holds tokens or keys. The vault pays out on their behalf after the World and passkey checks.
 
-### `ShagunVault.sol`: current code and required card changes
+### `ShagunVault.sol`: current code
 
-The current vault has gasless creation, attested claim, whole-gift `cashOut`, campaign uniqueness, admin pause/key rotation, and unclaimed-only expiry refunds. No deployment/verification of this implementation has been evidenced yet.
+The vault has gasless creation, attested claim, campaign uniqueness, admin pause/key rotation, and permissionless expiry refunds for unclaimed gifts. Card redemption is in the contract (Fri 19:40 IST) but not yet deployed or wired to the worker:
 
-The card phase needs a new deployment with partial `spend(giftId, amount, transactionRef)`, remaining-balance accounting, reference deduplication, and a claimed-card closure checkpoint before returning its unused balance. Settle clearings, not every approval as if it were final spending. Use Lithic transaction event references because one authorization can yield several events (partial clearings, voids, returns).
+- `spend(giftId, amount, spendRef)` (operator only) sends one cleared card amount to the treasury. Each `spendRef` is accepted once; spending never exceeds the gift, and a fully spent gift becomes `Settled`. Spending is allowed after expiry, because clearings for purchases approved before it can arrive late; only closure stops it.
+- `closeClaimed(giftId)` returns `amount - spent` to the sender after expiry and marks the gift `Returned`. The operator calls it once card holds are reconciled; anyone may call it after `CLOSE_GRACE` (7 days), so a claimed gift's balance cannot be stranded if the backend disappears.
+- Whole-gift `cashOut` (the non-card mode) is refused once any card spending exists: one redemption mode per gift.
 
-Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depends on the backend reconciling outstanding card liabilities; document that trust boundary.
+Settle clearings, not every approval as if it were final spending. Use Lithic transaction event references as `spendRef`, because one authorization can yield several events (partial clearings, voids, returns). The trust boundary: until the grace period ends, a claimed card's return depends on the backend reconciling outstanding card liabilities before closing.
 
 ### Lithic sandbox: card integration
 

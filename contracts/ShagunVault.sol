@@ -37,10 +37,13 @@ contract ShagunVault is EIP712, ReentrancyGuard, Ownable2Step, Pausable {
         bytes32 campaignId;
         bytes32 human;
         State state;
+        uint256 spent;
     }
     bytes32 public constant TERMS_TYPEHASH = keccak256("GiftTerms(uint256 chainId,address vault,address from,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 salt)");
     bytes32 public constant CLAIM_TYPEHASH = keccak256("Claim(bytes32 giftId,bytes32 human,bytes32 session,bytes32 nonce,uint256 deadline)");
     uint256 public constant MAX_GIFT = 1_000 * 1e6;
+    /// @dev After this delay past expiry, anyone may return a claimed gift's unspent balance.
+    uint256 public constant CLOSE_GRACE = 7 days;
     IAuthorizedUSDT public immutable usdt;
     address public relayer;
     address public attester;
@@ -49,6 +52,7 @@ contract ShagunVault is EIP712, ReentrancyGuard, Ownable2Step, Pausable {
     mapping(bytes32 => Gift) public gifts;
     mapping(bytes32 => bool) public campaignClaims;
     mapping(bytes32 => bool) public usedAttestations;
+    mapping(bytes32 => bool) public usedSpendRefs;
 
     error Unauthorized();
     error InvalidGift();
@@ -56,9 +60,13 @@ contract ShagunVault is EIP712, ReentrancyGuard, Ownable2Step, Pausable {
     error Expired();
     error InvalidClaim();
     error AlreadyReceived();
+    error DuplicateSpend();
+    error ExceedsBalance();
+    error NotExpired();
     event GiftCreated(bytes32 indexed giftId, address indexed sender, uint256 amount, uint256 expiry, bytes32 campaignId);
     event GiftClaimed(bytes32 indexed giftId, bytes32 indexed human);
     event CashOut(bytes32 indexed giftId, uint256 amount, bytes32 payoutRef);
+    event Spent(bytes32 indexed giftId, uint256 amount, bytes32 indexed spendRef, uint256 remaining);
     event Returned(bytes32 indexed giftId, address indexed sender, uint256 amount);
     event RolesUpdated(address relayer, address attester, address operator);
 
@@ -90,7 +98,7 @@ contract ShagunVault is EIP712, ReentrancyGuard, Ownable2Step, Pausable {
             || t.expiry > block.timestamp + 30 days || t.secretHash == bytes32(0)) revert InvalidGift();
         giftId = authorizationNonce(t);
         if (gifts[giftId].state != State.Missing) revert WrongState();
-        gifts[giftId] = Gift(t.from, t.amount, t.expiry, t.secretHash, t.boundHuman, t.campaignId, bytes32(0), State.Created);
+        gifts[giftId] = Gift(t.from, t.amount, t.expiry, t.secretHash, t.boundHuman, t.campaignId, bytes32(0), State.Created, 0);
         if (signature.length != 65) revert InvalidGift();
         bytes32 r; bytes32 s; uint8 v;
         assembly ("memory-safe") {
@@ -122,13 +130,42 @@ contract ShagunVault is EIP712, ReentrancyGuard, Ownable2Step, Pausable {
         emit GiftClaimed(giftId, human);
     }
 
+    /// @notice Whole-gift settlement for a non-card redemption; one redemption mode per gift.
     function cashOut(bytes32 giftId, bytes32 payoutRef) external nonReentrant {
         if (msg.sender != operator) revert Unauthorized();
         Gift storage g = gifts[giftId];
-        if (g.state != State.Claimed || payoutRef == bytes32(0)) revert WrongState();
+        if (g.state != State.Claimed || g.spent != 0 || payoutRef == bytes32(0)) revert WrongState();
         g.state = State.Settled;
         IERC20(address(usdt)).safeTransfer(treasury, g.amount);
         emit CashOut(giftId, g.amount, payoutRef);
+    }
+
+    /// @notice Settles one cleared card transaction to the treasury. Clearings can arrive after
+    /// expiry for purchases approved before it, so only closure stops spending.
+    function spend(bytes32 giftId, uint256 amount, bytes32 spendRef) external nonReentrant {
+        if (msg.sender != operator) revert Unauthorized();
+        Gift storage g = gifts[giftId];
+        if (g.state != State.Claimed || amount == 0 || spendRef == bytes32(0)) revert WrongState();
+        if (usedSpendRefs[spendRef]) revert DuplicateSpend();
+        if (amount > g.amount - g.spent) revert ExceedsBalance();
+        usedSpendRefs[spendRef] = true;
+        g.spent += amount;
+        if (g.spent == g.amount) g.state = State.Settled;
+        IERC20(address(usdt)).safeTransfer(treasury, amount);
+        emit Spent(giftId, amount, spendRef, g.amount - g.spent);
+    }
+
+    /// @notice Returns a claimed gift's unspent balance to the sender after expiry. The operator
+    /// closes once card holds are reconciled; anyone may close after CLOSE_GRACE.
+    function closeClaimed(bytes32 giftId) external nonReentrant {
+        Gift storage g = gifts[giftId];
+        if (g.state != State.Claimed) revert WrongState();
+        if (block.timestamp < g.expiry) revert NotExpired();
+        if (msg.sender != operator && block.timestamp < g.expiry + CLOSE_GRACE) revert Unauthorized();
+        uint256 remaining = g.amount - g.spent;
+        g.state = State.Returned;
+        IERC20(address(usdt)).safeTransfer(g.sender, remaining);
+        emit Returned(giftId, g.sender, remaining);
     }
 
     /// @notice Permissionless, but a worker must submit this transaction after expiry.

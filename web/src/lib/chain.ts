@@ -82,8 +82,11 @@ export const vaultAbi = [
   "function createGiftWithAuthorization((address from,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 salt) t,uint256 validAfter,uint256 validBefore,bytes signature) returns (bytes32)",
   "function claim(bytes32 giftId,bytes32 secret,bytes32 human,bytes32 session,bytes32 nonce,uint256 deadline,bytes signature)",
   "function cashOut(bytes32 giftId,bytes32 payoutRef)",
+  "function spend(bytes32 giftId,uint256 amount,bytes32 spendRef)",
+  "function closeClaimed(bytes32 giftId)",
   "function refundExpired(bytes32 giftId)",
-  "function gifts(bytes32) view returns (address sender,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 human,uint8 state)",
+  "function gifts(bytes32) view returns (address sender,uint256 amount,uint256 expiry,bytes32 secretHash,bytes32 boundHuman,bytes32 campaignId,bytes32 human,uint8 state,uint256 spent)",
+  "function usedSpendRefs(bytes32) view returns (bool)",
   "function usdt() view returns (address)",
   "function relayer() view returns (address)",
   "function operator() view returns (address)",
@@ -91,6 +94,7 @@ export const vaultAbi = [
   "event GiftCreated(bytes32 indexed giftId,address indexed sender,uint256 amount,uint256 expiry,bytes32 campaignId)",
   "event GiftClaimed(bytes32 indexed giftId,bytes32 indexed human)",
   "event CashOut(bytes32 indexed giftId,uint256 amount,bytes32 payoutRef)",
+  "event Spent(bytes32 indexed giftId,uint256 amount,bytes32 indexed spendRef,uint256 remaining)",
   "event Returned(bytes32 indexed giftId,address indexed sender,uint256 amount)",
 ];
 export { ZeroHash };

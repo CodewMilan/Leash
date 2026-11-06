@@ -22,7 +22,8 @@ describe("ShagunVault value-moving rules", () => {
     chain: { chainId: 1874, hardfork: "shanghai" },
     wallet: { totalAccounts: 4 },
   });
-  const provider = new BrowserProvider(rpc);
+  // Identical calls (e.g. a rejected and a later valid closeClaimed) must not share a cached result.
+  const provider = new BrowserProvider(rpc, undefined, { cacheTimeout: -1 });
   const sender = Wallet.createRandom(),
     attester = Wallet.createRandom();
   let relayer: JsonRpcSigner, outsider: JsonRpcSigner;
@@ -218,6 +219,61 @@ describe("ShagunVault value-moving rules", () => {
     await rpc.request({ method: "evm_increaseTime", params: [3601] });
     await rpc.request({ method: "evm_mine", params: [] });
     await expect(vault.refundExpired(p.nonce)).rejects.toThrow();
+  });
+  it("settles partial card spending once per reference and never beyond the gift", async () => {
+    const p = await create();
+    await expect(vault.spend(p.nonce, 8_000_000n, random())).rejects.toThrow();
+    await (await claim(p)).wait();
+    const ref = random();
+    await expect(
+      vault.connect(outsider).getFunction("spend")(p.nonce, 8_000_000n, ref),
+    ).rejects.toThrow();
+    await (await vault.spend(p.nonce, 8_000_000n, ref)).wait();
+    await expect(vault.spend(p.nonce, 1_000_000n, ref)).rejects.toThrow();
+    await expect(vault.spend(p.nonce, 17_000_001n, random())).rejects.toThrow();
+    await expect(vault.cashOut(p.nonce, random())).rejects.toThrow();
+    const gift = await vault.gifts(p.nonce);
+    expect(gift.spent).toBe(8_000_000n);
+    expect(gift.state).toBe(2n);
+    expect(await token.balanceOf(treasury)).toBe(8_000_000n);
+  });
+  it("returns only the unspent balance after expiry and stops spending once closed", async () => {
+    const p = await create();
+    await (await claim(p)).wait();
+    await (await vault.spend(p.nonce, 8_000_000n, random())).wait();
+    await expect(vault.closeClaimed(p.nonce)).rejects.toThrow();
+    await rpc.request({ method: "evm_increaseTime", params: [3601] });
+    await rpc.request({ method: "evm_mine", params: [] });
+    await (await vault.spend(p.nonce, 2_000_000n, random())).wait();
+    await expect(vault.refundExpired(p.nonce)).rejects.toThrow();
+    await expect(
+      vault.connect(outsider).getFunction("closeClaimed")(p.nonce),
+    ).rejects.toThrow();
+    await (await vault.closeClaimed(p.nonce)).wait();
+    expect(await token.balanceOf(sender.address)).toBe(990_000_000n);
+    expect(await token.balanceOf(treasury)).toBe(10_000_000n);
+    expect(await token.balanceOf(vaultAddress)).toBe(0n);
+    expect((await vault.gifts(p.nonce)).state).toBe(4n);
+    await expect(vault.spend(p.nonce, 1_000_000n, random())).rejects.toThrow();
+    await expect(vault.closeClaimed(p.nonce)).rejects.toThrow();
+  });
+  it("lets anyone return a claimed gift's balance after the close grace period", async () => {
+    const p = await create();
+    await (await claim(p)).wait();
+    await rpc.request({ method: "evm_increaseTime", params: [3601 + 7 * 86_400] });
+    await rpc.request({ method: "evm_mine", params: [] });
+    await (await vault.connect(outsider).getFunction("closeClaimed")(p.nonce)).wait();
+    expect(await token.balanceOf(sender.address)).toBe(1_000_000_000n);
+  });
+  it("settles a fully spent gift with nothing left to return", async () => {
+    const p = await create();
+    await (await claim(p)).wait();
+    await (await vault.spend(p.nonce, 25_000_000n, random())).wait();
+    expect((await vault.gifts(p.nonce)).state).toBe(3n);
+    await rpc.request({ method: "evm_increaseTime", params: [3601] });
+    await rpc.request({ method: "evm_mine", params: [] });
+    await expect(vault.closeClaimed(p.nonce)).rejects.toThrow();
+    expect(await token.balanceOf(treasury)).toBe(25_000_000n);
   });
   it("rejects a different bound human", async () => {
     const human = random(),
