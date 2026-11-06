@@ -6,11 +6,7 @@ import { FlipLink } from "@/components/FlipLink";
 import { EASE, gsap, useGSAP } from "@/lib/gsap";
 
 export const NAV = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#cases", label: "When it pays" },
-  { href: "/#hood", label: "Under the hood" },
-  { href: "/#rules", label: "Spend rules" },
-  { href: "/#inside", label: "What's inside" },
+  { href: "/gifts", label: "Gift demo" },
 ];
 
 export function Wordmark({ className = "" }: { className?: string }) {

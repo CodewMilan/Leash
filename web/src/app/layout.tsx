@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Leash · Your agent pays. Your thumb decides.",
+  title: "Leash Gifts · A little gift. A world of possibilities.",
   description:
-    "A handheld AI assistant that pays for things for you, but can never spend over your limit without your thumb. Built with 0G, Hedera and World ID.",
+    "Receive a gift and explore redeeming it into a virtual card. An interactive demo with simulated funding and card issuance.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
