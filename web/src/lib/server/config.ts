@@ -61,8 +61,8 @@ export function appStatus(): AppStatus {
   const services = [
     {
       name: "Sender sign-in",
-      ready: has("NEXT_PUBLIC_PRIVY_APP_ID"),
-      detail: "Privy wallet connect · MetaMask",
+      ready: true,
+      detail: has("NEXT_PUBLIC_PRIVY_APP_ID") ? "Privy wallet connect · MetaMask" : "MetaMask",
     },
     {
       name: "Gift storage",

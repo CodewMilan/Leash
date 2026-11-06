@@ -13,7 +13,8 @@ import { BrowserProvider } from "ethers";
 import { WHITECHAIN } from "@/lib/chain";
 import { api } from "@/lib/client-api";
 import { WALLETS, walletOption } from "@/lib/wallets";
-import { SenderContext, unconfiguredSender } from "./SenderContext";
+import { SenderContext } from "./SenderContext";
+import { InjectedSenderProvider } from "./InjectedSenderProvider";
 
 type Pending = {
   resolve: (wallet: BaseConnectedEthereumWallet) => void;
@@ -108,8 +109,7 @@ function Connection({ children }: { children: ReactNode }) {
 }
 export default function SenderProvider({ children }: { children: ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-  if (!appId)
-    return <SenderContext.Provider value={unconfiguredSender}>{children}</SenderContext.Provider>;
+  if (!appId) return <InjectedSenderProvider>{children}</InjectedSenderProvider>;
   return (
     <PrivyProvider
       appId={appId}

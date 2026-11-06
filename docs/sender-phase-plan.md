@@ -1,6 +1,6 @@
 # Sender side: phase plan
 
-Scope: everything the gift sender touches. The sender arrives, connects a wallet, chooses a gift card, enters an amount, and sends official test USDT on Whitechain. The cofounder owns the receiving side: claim, then card issuance (Lithic or Stripe sandbox).
+Scope: everything the gift sender touches. The sender arrives, connects a wallet, chooses a gift card, enters an amount, and sends official test USDT on Whitechain. The cofounder owns the receiving side: claim, then card issuance (Lithic sandbox, see `card-phase-plan.md`).
 
 Written Fri Nov 6, 17:55 IST. Feature freeze is 05:00 IST; the hard deadline is Sat 09:00 IST.
 
@@ -23,7 +23,7 @@ Written Fri Nov 6, 17:55 IST. Feature freeze is 05:00 IST; the hard deadline is 
 | Phase | State |
 |---|---|
 | 0 | Local database migrated; relayer, attester, admin, treasury and live-sender keys generated into `web/.env.local`; contract compiled; `pnpm test:live` written. **Waiting for funds**: faucet WBT for relayer `0xE22E6f1faBc6CD11219F2437df55e1eC76417bfa`, official test USDT for live sender `0x414B531FE1a3eEa716D32ECc4073818258816F73` and your MetaMask, and the Privy app ID. Then deploy, verify, run the live gate. |
-| 1 | Built: MetaMask connect, chain add/switch, signed sign-in, onboarding steps, wallet/session mismatch notice. Live gate pending the Privy app ID. |
+| 1 | Built: MetaMask connect, chain add/switch, signed sign-in, onboarding steps, wallet/session mismatch notice. Without a Privy app ID the site now connects MetaMask directly (`InjectedSenderProvider.tsx`, same `Sender` interface), so the Privy ID is no longer a blocker. |
 | 2 | Built: card designs, $1–$1,000 amounts, sealed recipient note, claim window, campaign, review step, server validation and storage. |
 | 3–5 | Send path, widget and history exist; their live gates run once Phase 0 is funded. |
 
@@ -48,7 +48,7 @@ Blocking inputs (only the team can provide these):
 
 1. **Official test USDT** for at least one sender wallet. The faucet only gives WBT, and only the token owner (`0x8790…799c`) can mint USDT, so request it from the Whitechain team at the booth or in their support channel. Self-minted tokens do not qualify.
 2. **Test WBT** for the relayer and deployer from [faucet.testnet.whitechain.io](https://faucet.testnet.whitechain.io) (GitHub account older than 30 days, 0.5 WBT per 24 h).
-3. **Privy app ID** with MetaMask enabled under external wallets and `http://localhost:3000` allowed.
+3. Optional: **Privy app ID** with MetaMask enabled under external wallets and `http://localhost:3000` allowed. Without it, MetaMask connects directly.
 
 Work:
 

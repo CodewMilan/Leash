@@ -32,7 +32,7 @@ Pages: `/` (landing), `/dashboard` (send/history/CSV), `/send` (the embeddable "
 
 ### Sender wallets
 
-Senders sign in with an external wallet through Privy's connect-wallet modal. MetaMask is the first wallet; add more in `web/src/lib/wallets.ts`. Set `NEXT_PUBLIC_PRIVY_APP_ID`, allow `http://localhost:3000` (and your deployed origin) in the Privy dashboard, and enable MetaMask under external wallets. Privy only connects the wallet; Shagun's own signed challenge (`auth/sender/options` → `auth/sender/verify`) creates the sender session. The wallet is switched to Whitechain testnet (chain 1874) and asked to add it if missing. The sender signs once to sign in and once per gift (an EIP-3009 typed-data authorization); the relayer pays all gas. Fund the sender address with official test USDT first.
+Senders sign in with MetaMask. Without `NEXT_PUBLIC_PRIVY_APP_ID` the site talks to MetaMask directly (EIP-6963 discovery, falling back to `window.ethereum`), so no third-party setup is needed. Setting `NEXT_PUBLIC_PRIVY_APP_ID` switches to Privy's connect-wallet modal instead; then allow `http://localhost:3000` (and your deployed origin) in the Privy dashboard and enable MetaMask under external wallets. Add more wallets in `web/src/lib/wallets.ts`. Either way the wallet is only connected; Shagun's own signed challenge (`auth/sender/options` → `auth/sender/verify`) creates the sender session. The wallet is switched to Whitechain testnet (chain 1874) and asked to add it if missing. The sender signs once to sign in and once per gift (an EIP-3009 typed-data authorization); the relayer pays all gas. Fund the sender address with official test USDT first.
 
 ### Choosing a gift
 

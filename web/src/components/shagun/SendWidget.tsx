@@ -9,7 +9,8 @@ import QRCode from "qrcode";
 import { tokenAmount } from "@/lib/amounts";
 import { api } from "@/lib/client-api";
 import type { AppStatus, GiftView } from "@/lib/types";
-import { SenderContext, unconfiguredSender, useSender } from "./SenderContext";
+import { useSender } from "./SenderContext";
+import { InjectedSenderProvider } from "./InjectedSenderProvider";
 import { claimLinkFor, walletMessage } from "./giftFlow";
 import { GiftComposer, useGiftDraft } from "./GiftComposer";
 import { AppEnvelope } from "./AppEnvelope";
@@ -23,9 +24,9 @@ const SenderProvider = dynamic(() => import("./SenderProvider"), {
 export function SendWidget() {
   if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID)
     return (
-      <SenderContext.Provider value={unconfiguredSender}>
+      <InjectedSenderProvider>
         <WidgetFlow />
-      </SenderContext.Provider>
+      </InjectedSenderProvider>
     );
   return (
     <SenderProvider>

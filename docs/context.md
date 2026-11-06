@@ -3,31 +3,31 @@ cursor:
   subagentId: "bc-c80311ec-5056-53d1-9e6f-a4f97096dc61"
 ---
 
-# Shagun: knowledge base (crypto gift → Stripe sandbox virtual card)
+# Shagun: knowledge base (crypto gift → Lithic sandbox virtual card)
 
 "Shagun" is a working name. This file is the single source of truth for any teammate or AI agent on the gift project at ETHGlobal Mumbai.
 
 Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:30 IST.
 
-*Updated Fri 17:10 IST: Stripe Issuing sandbox cards are the main redemption path. RazorpayX UPI is optional. Follow [stripe-phase-plan.md](./stripe-phase-plan.md) for the phased build and corrected authorization/expiry accounting. The current code is the earlier UPI foundation; Stripe card functionality is not yet implemented.*
+*Updated Fri 18:20 IST: Lithic sandbox cards are the main redemption path (Stripe Issuing was dropped). RazorpayX UPI is optional. Follow [card-phase-plan.md](./card-phase-plan.md) for the phased build and authorization/expiry accounting. Card Phase 0 (sandbox access, ASA responder, hosted card frames on `/dev/card`) is built and waits for a Lithic sandbox key; claims do not issue cards yet.*
 
 ## 1. One-liner and positioning
 
 **“Send a Diwali shagun in dollars. A verified human claims a virtual card, spends from the gift, and the reconciled unused balance comes back to the sender.”**
 
 - **Primary partner:** Whitechain. Showcase gasless official-USDT settlement and verifiable gift rules.
-- **Demo hook:** the judge taps an NFC envelope, confirms their device and World verification, and sees a genuine Stripe Issuing sandbox card in the browser.
+- **Demo hook:** the judge taps an NFC envelope, confirms their device and World verification, and sees a genuine Lithic sandbox card in the browser.
 - **Three differentiators:** no sender-paid gas or recipient wallet; one-per-human company campaigns; unused gift value returned after expiry and reconciliation.
-- **Main redemption:** Stripe Issuing test mode, with a spending budget matching the gift. The card cannot purchase real goods. Stripe's prefunded test USD balance is separate from Whitechain USDT.
+- **Main redemption:** a Lithic sandbox virtual card, with a spend limit matching the gift. The sandbox is not connected to card networks, so the card cannot purchase real goods; purchases are simulated. The card budget is separate from Whitechain USDT.
 - **Optional extra:** RazorpayX UPI test payout, as an alternative redemption mode, after the card demo passes.
-- **Production scope:** neither issuing/availability in India nor automatic conversion of Whitechain USDT into Stripe funds is established. Verify production provider eligibility before making geographic or real-money claims.
+- **Production scope:** neither issuing/availability in India nor automatic conversion of Whitechain USDT into card funds is established. Verify production provider eligibility before making geographic or real-money claims.
 
 ## 2. Ground rules
 
 - Real testnet transactions and real World verification; never fabricate receipts.
-- Label every card and purchase simulation **Stripe Issuing TEST MODE**. Use the actual card brand returned by Stripe; do not assume Visa before account verification.
+- Label every card and purchase simulation **Lithic SANDBOX**. Show the network of the card program actually used (sandbox offers Mastercard and Visa test programs).
 - Preserve the existing brand kit and coordinate with the landing-page developer.
-- Start with the Stripe account/access gate. Budget roughly three hours for the provider-specific slice; balance/contract changes, testing and the existing external setup take additional effort. Keep the 03:00 integration hard stop and 05:00 feature freeze.
+- Start with the Lithic sandbox access gate. Budget roughly three hours for the provider-specific slice; balance/contract changes, testing and the existing external setup take additional effort. Keep the 03:00 integration hard stop and 05:00 feature freeze.
 - Secrets come from environment variables only. Commit steadily and distinguish implemented behavior from planned integrations.
 - A claimed-card return needs off-chain card/hold reconciliation. Only the unclaimed-envelope return can retain the existing permissionless expiry rule without additional provider trust.
 
@@ -42,15 +42,15 @@ Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:3
 **B. Recipient**
 1. Opens the link, confirms with a passkey, and passes backend-verified World Proof of Human.
 2. The relayer confirms `claim()`. An idempotent issuance job creates one sandbox virtual USD card and binds it to that gift.
-3. Recipient-only Stripe Issuing Elements displays the card details. PAN/CVC are never stored or served by our backend.
-4. A test purchase sends a signed synchronous authorization webhook. The backend atomically reserves available budget and promptly approves or declines; it does not wait for chain confirmation.
-5. Capture events record actual spending and enqueue idempotent partial on-chain settlement. The UI distinguishes approval holds, captured purchases and settlement receipts.
-6. At expiry, stop new approvals, cancel the card, reconcile pending liabilities, close the card allocation and return safely unused USDT. Display return pending until confirmed.
+3. Recipient-only Lithic hosted card frames (`lithic-embed`) display the card details. PAN/CVV are never stored or served by our backend.
+4. A simulated purchase sends a signed Auth Stream Access (ASA) request. The backend atomically reserves available budget and answers within three seconds; it does not wait for chain confirmation.
+5. Clearing events record actual spending and enqueue idempotent partial on-chain settlement. The UI distinguishes approval holds, cleared purchases and settlement receipts.
+6. At expiry, stop new approvals, pause and close the card, reconcile pending liabilities, close the card allocation and return safely unused USDT. Display return pending until confirmed.
 
 **C. Denied paths**
 - A consumed envelope cannot be claimed again.
 - A human claiming a second gift in the same company campaign is rejected.
-- An unsupported, expired or over-budget authorization is declined in the supported sandbox flow. Stripe controls supplement the atomic ledger.
+- An unsupported, expired or over-budget authorization is declined in the supported sandbox flow. Lithic spend limits supplement the atomic ledger.
 - An unclaimed expired gift returns in full. A claimed card with pending liabilities remains in closing/reconciliation instead of refunding money still needed for an approved purchase.
 
 ## 4. What World ID does and doesn't protect (be precise in Q&A)
@@ -70,10 +70,10 @@ Hacking ends **Sat Nov 7, 09:00 IST** (hard deadline). Judging runs 09:30–12:3
 
 ```text
 Sender dashboard / Privy → signed EIP-3009 → backend → relayer → Whitechain ShagunVault
-Recipient / passkey + World → verified claim → issuance job → Stripe Issuing sandbox
-Stripe authorization webhook → atomic PostgreSQL reservation → fast approve/decline
-Stripe capture events → durable settlement job → partial vault spend → treasury
-Expiry worker → card cancellation + hold reconciliation → closure → unused USDT return
+Recipient / passkey + World → verified claim → issuance job → Lithic sandbox card
+Lithic ASA request → atomic PostgreSQL reservation → fast approve/decline
+Lithic clearing events → durable settlement job → partial vault spend → treasury
+Expiry worker → card close + hold reconciliation → closure → unused USDT return
 Optional alternative: RazorpayX UPI test payout (one redemption mode per gift)
 ```
 
@@ -96,19 +96,20 @@ Optional alternative: RazorpayX UPI test payout (one redemption mode per gift)
 
 The current vault has gasless creation, attested claim, whole-gift `cashOut`, campaign uniqueness, admin pause/key rotation, and unclaimed-only expiry refunds. No deployment/verification of this implementation has been evidenced yet.
 
-The card phase needs a new deployment with partial `spend(giftId, amount, transactionRef)`, remaining-balance accounting, reference deduplication, and a claimed-card closure checkpoint before returning its unused balance. Settle captures, not every approval as if it were final spending. Use actual Stripe transaction references because one authorization can yield multiple lifecycle/transaction events.
+The card phase needs a new deployment with partial `spend(giftId, amount, transactionRef)`, remaining-balance accounting, reference deduplication, and a claimed-card closure checkpoint before returning its unused balance. Settle clearings, not every approval as if it were final spending. Use Lithic transaction event references because one authorization can yield several events (partial clearings, voids, returns).
 
 Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depends on the backend reconciling outstanding card liabilities; document that trust boundary.
 
-### Stripe Issuing sandbox: next integration
+### Lithic sandbox: card integration
 
-- Prove actual Issuing access, a funded test balance, cardholder requirements, virtual card creation, returned brand and activation before building the full UI.
-- Use all-time spending controls plus a transactional balance ledger. Stripe documents delayed control aggregation; controls alone are not a universal exact-balance guarantee.
-- Use authenticated Issuing Elements and scoped ephemeral keys. Never expose another claimant's card or return PAN/CVC from our API.
-- The real-time authorization response deadline is two seconds. Keep chain writes asynchronous and configure decline fallback.
-- Track authorization holds, captures, reversals and closure separately. Cancellation does not prevent capture of already approved purchases, so it cannot alone authorize an immediate refund.
-- Demonstrate controlled sandbox purchases through Stripe's actual test helpers. Keep unsupported network cases and production issuing scope outside the MVP claims.
-- See [Stripe phase plan](./stripe-phase-plan.md) for the implementation sequence, tests, prerequisites and official references.
+- Phase 0 code exists: sandbox-only API client, signed ASA responder (`/api/webhooks/lithic/asa`), signed events endpoint (`/api/webhooks/lithic/events`), `pnpm lithic:phase0` setup/simulation script, and `/dev/card`. It has not run against a real sandbox key yet.
+- Use a `FOREVER` card spend limit plus a transactional balance ledger. Pre-ASA checks can decline first; the ledger is the source of truth.
+- Show card details only through Lithic hosted frames with a short-lived embed session created by our backend for the authenticated claimant. Never return PAN/CVV from our API.
+- ASA times out at six seconds (answer within three) and retries on 5xx, so decisions must be idempotent on the ASA `token`. Keep chain writes asynchronous; any failure declines.
+- ASA and events need a public HTTPS URL (tunnel or deployment); the embed `target_origin` must equal the page origin.
+- Track holds, clearings, voids, returns and closure separately. Closing a card does not by itself prove approved purchases cannot clear.
+- Demonstrate purchases with Lithic's sandbox simulation endpoints. Keep production issuing scope outside the MVP claims.
+- See [card phase plan](./card-phase-plan.md) for the implementation sequence.
 
 ### Relayer drain protection (Whitechain asks for this)
 - The relayer may only call `ShagunVault` functions, and the backend enforces an allowlist.
@@ -120,7 +121,7 @@ Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depend
 - **Caveat:** "chain-selector and RPC availability are still enforced". If Whitechain has no chain selector registered, the flag may not be enough.
 - **On-chain writes in simulation go through a mock forwarder listed per tenant** (`cre workflow supported-chains`, which needs `cre login`). An unlisted chain probably has none.
 - **After the card-first core works:** run `cre workflow simulate --allow-unknown-chains` with the 1874 RPC set in `project.yaml`.
-  - **Plan A:** use a confirmed claim event to orchestrate the existing idempotent Stripe issuance service. Keep CRE outside synchronous card authorization.
+  - **Plan A:** use a confirmed claim event to orchestrate the idempotent Lithic card issuance service. Keep CRE outside synchronous card authorization.
   - **Plan B:** if chain writes fail but reads work, read the gift from Whitechain and invoke the same authenticated issuance service while the backend records chain effects. Prove that it is meaningfully used; do not create a second redemption path.
   - **Plan C:** if Whitechain can't be reached at all, drop Chainlink for ENS (see section 6).
 
@@ -131,7 +132,7 @@ Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depend
 - **Gotchas:**
   - Payouts need **IP allowlisting**. A local CRE simulation calls from your laptop's IP, so allowlist the hotspot IP and recheck if it changes.
   - Test payouts stay in `processing` until you move them forward manually in the dashboard. Do that live as the demo beat, or use the `payout.processed` webhook.
-  - Signing up for a new RazorpayX account may need a business profile. Verify payout access only when adding optional UPI; do not let it block the Stripe card flow.
+  - Signing up for a new RazorpayX account may need a business profile. Verify payout access only when adding optional UPI; do not let it block the Lithic card flow.
 - **Exchange rate:** a fixed demo rate in the config, shown on screen as "indicative". Don't present it as a live market rate.
 
 ## 6. Partner tracks (3 picks)
@@ -141,7 +142,7 @@ Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depend
 | **Whitechain** | **Scale · Payments Nobody Notices** | $2,000 / $1,000 | **Primary** | A payer flow with zero visible crypto steps, shown in the demo (our EIP-3009 sender flow is exactly this). You must explain how the business pays gas, how the relayer gets WBT, and what stops someone draining it. Won't place: a payer who still signs a transaction that costs them gas. |
 | Whitechain (same pick) | Operate · Stablecoin Payments for Business | $2,500 / $1,500 / $1,000 | Moderate | A drop-in widget a separate demo app adds in about 20 lines (a "Send a Shagun" button), both views, and extra credit for going past the first payment (return, export). Won't place: a plain transfer button, tipping jars, custodial bridges into a local-currency token, or escrow on its own. Don't describe the UPI cash-out as a "bridge into local currency". |
 | **World** | Best Use of IDKit | $1,250 × 2 | Good | IDKit verified server-side; why Proof of Human is the minimum credential; one alternative path (rejected or ineligible); an integration debrief. |
-| **Chainlink** | Best workflow with CRE | $1,500 | Good if plan A or B works | A CRE workflow that connects a chain to an outside API, simulated in the CLI and actually used in the project. Keep it out of the synchronous Stripe authorization path. |
+| **Chainlink** | Best workflow with CRE | $1,500 | Good if plan A or B works | A CRE workflow that connects a chain to an outside API, simulated in the CLI and actually used in the project. Keep it out of the synchronous Lithic ASA path. |
 
 - **ENS fallback if CRE can't reach Whitechain:** Best Use of ENSv2 ($3,000 / $2,000 / $1,000). Shagun handles become non-transferable ENSv2 subnames (`priya.shagun.eth`) on Sepolia, bound to the World nullifier, with Enhanced Access Control (EAC) letting only the owner edit their payout record.
 - **Not targeting:** Arc, Hedera, 0G, Uniswap, 1inch, Definitive, EF.
@@ -158,7 +159,7 @@ Preserve permissionless refunds for unclaimed gifts. Claimed-card closure depend
 
 ## 8. Phase order and deadline
 
-Follow [stripe-phase-plan.md](./stripe-phase-plan.md): access spike → balance/contract migration → claim-to-card → purchases/settlement → closure/returns → integration checks/demo. Estimated core effort is roughly 5–7 hours after the existing foundation, dependent on account access and remaining live integrations. Optional UPI/CRE follow only after the card demo passes.
+Follow [card-phase-plan.md](./card-phase-plan.md): access spike → balance/contract migration → claim-to-card → purchases/settlement → closure/returns → integration checks/demo. Estimated core effort is roughly 5–7 hours after the existing foundation, dependent on account access and remaining live integrations. Optional UPI/CRE follow only after the card demo passes.
 
 Freeze features by **05:00 IST**, rehearse, record and prepare evidence, and target submission by **08:30 IST** before the **09:00** deadline.
 
@@ -175,8 +176,8 @@ Freeze features by **05:00 IST**, rehearse, record and prepare evidence, and tar
 
 ## 10. Q&A prep
 
-- **Is the card real money?** It is a genuine Stripe Issuing sandbox card; purchases are simulated. Whitechain transactions use official test USDT. Neither has monetary value in this demo.
-- **Does Stripe convert the USDT?** No. A prefunded sandbox Issuing balance backs simulated card purchases. USDT settlement is the corresponding on-chain gift ledger operation.
+- **Is the card real money?** It is a genuine Lithic sandbox card; purchases are simulated through Lithic's sandbox. Whitechain transactions use official test USDT. Neither has monetary value in this demo.
+- **Does Lithic convert the USDT?** No. The sandbox card budget backs simulated card purchases. USDT settlement is the corresponding on-chain gift ledger operation.
 - **Are returns trustless?** Unclaimed expiry returns are permissionless. Claimed-card unused returns require provider/ledger reconciliation and an authorized closure before the chain releases funds.
 - **What does World prove?** A unique verified human, enabling one-per-human campaigns. An unregistered envelope can be claimed by the first eligible holder; it does not prove that holder is the intended recipient.
 - **How is gas paid?** Faucet WBT on testnet, allowlisted relayer operations and spending caps. A proposed 0.5% production fee is not currently collected.
@@ -198,7 +199,7 @@ Freeze features by **05:00 IST**, rehearse, record and prepare evidence, and tar
 
 ## 12. Environment variables (names only)
 
-Stripe phase: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_AUTHORIZATION_WEBHOOK_SECRET`, `STRIPE_EVENTS_WEBHOOK_SECRET`, and a pinned `STRIPE_API_VERSION`. These are planned configuration names; Stripe runtime support is not yet implemented.
+Card phase: `LITHIC_API_KEY` (sandbox), `LITHIC_ENVIRONMENT=sandbox`, `LITHIC_ASA_SECRET`, `LITHIC_EVENTS_SECRET`, and `LITHIC_PHASE0_CARD_TOKEN` for the development card page. `pnpm lithic:phase0` saves the secrets and token into `web/.env.local`.
 
 `WHITECHAIN_RPC_URL=https://rpc.testnet.whitechain.io`, `USDT_ADDRESS=0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`, `VAULT_ADDRESS`, `RELAYER_PRIVATE_KEY`, `ATTESTER_PRIVATE_KEY`, `WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_SIGNING_KEY`, `RAZORPAYX_KEY_ID`, `RAZORPAYX_KEY_SECRET`, `RAZORPAYX_ACCOUNT_NUMBER` (the test-mode customer identifier), `PAYOUT_INR_PER_USDT` (demo rate), `CRE_*` (per the CLI setup) or `ENS_*` (fallback), and `NEXT_PUBLIC_*` only for non-secret IDs.
 
@@ -223,14 +224,14 @@ Stripe phase: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE
   - Test mode: https://razorpay.com/docs/x/dashboard/test-mode
   - Payout to a UPI ID: https://razorpay.com/docs/api/x/payouts/create/vpa/
 - ENSv2 (fallback): https://docs.ens.domains/ensv2/overview/
-- Lithic sandbox (possible alternative issuer; do not switch automatically): https://docs.lithic.com
 
-### Stripe references for this phase
+### Lithic references for this phase
 
-- Testing: https://docs.stripe.com/issuing/testing
-- Virtual card creation: https://docs.stripe.com/api/issuing/cards/create
-- Issuing Elements: https://docs.stripe.com/issuing/elements
-- Real-time authorization: https://docs.stripe.com/issuing/controls/real-time-authorizations
-- Spending controls: https://docs.stripe.com/issuing/controls/spending-controls
-- Authorization lifecycle: https://docs.stripe.com/issuing/purchases/authorizations
-- Captures and transactions: https://docs.stripe.com/issuing/purchases/transactions
+- Simulating transactions: https://docs.lithic.com/docs/simulating-transactions
+- Create card: https://docs.lithic.com/reference/postcards
+- Auth Stream Access (ASA): https://docs.lithic.com/docs/auth-stream-access-asa
+- Enroll a responder endpoint: https://docs.lithic.com/reference/postresponderendpoints
+- Webhook signature verification: https://docs.lithic.com/docs/events-api
+- Spend limits: https://docs.lithic.com/docs/spend-limits
+- Embedded card UI: https://docs.lithic.com/docs/embedded-card-ui
+- Create card embed session: https://docs.lithic.com/reference/createcardembedsession
