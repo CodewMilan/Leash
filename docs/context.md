@@ -4,7 +4,7 @@ The repo is the Next.js website in `web/`. Old device, merchant services, 0G, He
 
 ## Current flow: received pass to sandbox commerce
 
-On `codex/end-to-end-gifting`, `/gifts` starts with a received $100 sample pass. A local sandbox access code opens the shared demo (signed HttpOnly session), then the user reviews and issues or recovers the same Lithic virtual card. The code is not real recipient identity verification. No email delivery is implemented. `/sandbox` redirects to `/gifts`. Card-ready CTA leads to `/shop`.
+On `sai-trail` (created after merging latest main into `codex/end-to-end-gifting`), `/gifts` starts with a received $100 sample pass. A local sandbox access code opens the shared demo (signed HttpOnly session), then the user reviews and issues or recovers the same Lithic virtual card. The code is not real recipient identity verification. No email delivery is implemented. `/sandbox` redirects to `/gifts`. Card-ready CTA leads to `/shop`.
 
 Wallet connection and gift purchase payment were removed at the user's request. `/api/wallet` and old `/api/orders` routes return HTTP 410. Wallet/payment library code and records are preserved for historical reference, not connected to the current UI or shop authorization. Base Sepolia variables are not needed.
 
@@ -15,3 +15,5 @@ Use one persistent local Node instance. Preserve `.env.local` and `.data/lithic`
 ## Merged main application
 
 Latest `main` is merged on the testing branch. Its Shagun landing page remains at `/`, with its additional routes, contracts, database and worker code preserved. The received-pass sandbox demo remains at `/gifts` and `/shop` and does not require the main app’s database or wallet. Main application setup/status is documented in `docs/main-context.md`; those integrations require their own environment and verification.
+
+End-to-end merge evidence and remaining configuration requirements: `docs/testing-sai-trail.md`. Latest main merged at `f9ba7e6`; the Shagun sender/claim flow and standalone received-pass demo remain separate.
