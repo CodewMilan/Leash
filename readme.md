@@ -89,7 +89,7 @@ Card issuance is durable: the operation is recorded before calling Lithic. An in
 
 Configure `LITHIC_API_KEY`, `LITHIC_ENVIRONMENT=sandbox`, `LITHIC_ASA_SECRET`, and `LITHIC_EVENTS_SECRET`, along with the database, Whitechain vault/roles in `.env.example`. UPI provider settings are optional for new card gifts. Use a compatible deployment of `ShagunVault` exposing `spend` and `closeClaimed`; do not point old funded gifts at a replacement vault.
 
-Lithic webhooks and hosted frames require a public HTTPS app origin. Run a tunnel to the development server, set `APP_URL` to that exact HTTPS origin and restart the app and worker. Open the gift through that URL. Enroll the signed ASA and event endpoints:
+Lithic webhooks and hosted frames require a public HTTPS app origin. Run a tunnel to the development server (for example `cloudflared tunnel --url http://localhost:3000`), set `APP_URL` to that exact HTTPS origin and restart the app and worker. The scripts, worker and migrations read settings only from `web/.env.local`. The dev server serves its scripts only to the `APP_URL` host, so open the whole site through the tunnel, not `localhost`. A quick tunnel gets a new URL each time it restarts; enroll both endpoints again and disable the old event subscription. Enroll the signed ASA and event endpoints:
 
 ```bash
 cd web
