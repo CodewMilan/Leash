@@ -1,48 +1,67 @@
 # Leash Gifts
 
-Receive a sample gift and generate an actual **Lithic sandbox virtual card** through server-side API calls. The gift itself is illustrative; crypto funding is not connected.
+**Connect wallet → pay Base Sepolia test USDC → verify payment → recipient issues a Lithic sandbox card.**
 
-## Run locally
+This branch adds an actual testnet purchase gate to the existing provider-backed sandbox issuance. Testnet tokens do not become live card funds.
 
-Requires Node.js 20.9+ and pnpm 10.14.0. Run the app from `web/` so its default persistent-data path stays consistent.
+## Start locally
+
+Requires Node.js 20.9+ and pnpm 10.14.0. Use a browser with an injected EVM wallet extension, or the wallet's own browser. Smart-contract-wallet signature verification and WalletConnect are not implemented.
 
 ```bash
 cd web
 pnpm install --frozen-lockfile
 cp .env.example .env.local
-# Set LITHIC_API_KEY and LITHIC_SANDBOX_ACCESS_CODE in .env.local
+# Set LITHIC_API_KEY and LITHIC_SANDBOX_ACCESS_CODE (16+ random characters).
+# Set BASE_SEPOLIA_TREASURY_ADDRESS to your testnet receiving wallet, OR:
+node --env-file=.env.local scripts/setup-testnet.mjs
 pnpm dev
 ```
 
-If `.env.local` already exists, edit it rather than replacing it. Open http://localhost:3000 (redirects to `/gifts`). Enter your configured sandbox access code, select **Redeem to sandbox card**, acknowledge sandbox-only use, and generate the card. A provider-backed card is shown with its masked number, expiry, current status and spending limit. Refresh or revisit to recover the same card.
+If `.env.local` already exists, edit it rather than replacing it. The setup script keeps any existing treasury address; otherwise it saves a new TESTNET receiving wallet and recovery key in ignored `.env.local`, without printing the private key. Preserve that file. Never use this generated wallet for real funds. The checkout never uses a treasury private key to sign or spend.
 
-## Environment
+Open http://localhost:3000. The root redirects to `/gifts`. The in-app browser may have no wallet provider; open the URL in your normal wallet-enabled desktop browser for testing.
 
-- `LITHIC_API_KEY`: a **sandbox** API key. Requests are hardcoded to `https://sandbox.lithic.com/v1`; there is no production URL switch.
-- `LITHIC_SANDBOX_ACCESS_CODE`: at least 16 characters; use a randomly generated value. Protects the sandbox operator session, not a recipient identity or real funds. The signed HttpOnly session lasts eight hours. Changing the code invalidates sessions.
-- `LITHIC_ACCOUNT_TOKEN`: optional account-holder `account_token` if your Lithic programme requires one. Create/approve the appropriate sandbox account holder in Lithic first. This is not the dashboard's programme ID.
-- `LITHIC_PROGRAM_TOKEN`: optional programme UUID for the card-dashboard link.
-- `LITHIC_DATA_DIR`: optional persistent writable directory; defaults to `.data/lithic` relative to the app's working directory.
+## Test the purchase flow
 
-Keep secrets server-side, without `NEXT_PUBLIC_`, and never commit `.env.local` or `.data/`.
+1. Obtain **100 test USDC on Base Sepolia**, plus Base Sepolia ETH for fees. The UI links to Circle's test-USDC faucet and Base's faucet guidance. These tokens have no financial value.
+2. Connect your buyer wallet and approve the sign-in message. It proves ownership without authorizing a token transfer.
+3. Leave the recipient blank to buy for yourself, or enter another EVM wallet. Select **Prepare gift**.
+4. Check the order's receiving treasury and select **Pay 100 test USDC**. The app switches to Base Sepolia and requests a direct ERC-20 transfer, without unlimited token approvals. Approve the transfer yourself in your wallet.
+5. After broadcast, use **Check submitted payment** until the server sees the transfer and **three confirmations**. The explorer receipt link is shown. Do not pay again while confirmation is pending.
+6. The recipient connects and signs in, then opens the gift in **Your gifts**. If you bought for yourself, use the same session.
+7. Acknowledge sandbox-only use and select **Generate sandbox card**. The server re-verifies payment and calls Lithic's sandbox API. Inspect the actual masked card, expiry, state and spending limit, or open it in Lithic.
 
-## What this does
+If a page reload or request failure interrupts payment confirmation, the submitted transaction hash is stored locally and on the order when possible. **Already paid or replaced a transaction?** accepts the exact hash from your wallet, verifies it server-side, and does not send another payment. A transaction cannot pay for two gifts. A payment must have occurred after the order was created.
 
-One sample gift per server data directory is reserved before the first provider call. A UUID idempotency key and unique memo identify that issuance. Subsequent requests return the same provider card. Signing out, clearing browser storage or restarting the server does not reset issuance.
+## Environments and routes
 
-After a timeout, **Check status & recover card** searches the provider's cards for the reservation memo. The app does not issue another card when the original result is uncertain. Provider validation or access errors also leave the reservation in place: an operator must verify the result in Lithic rather than blindly resetting the record. A process crash can leave `issuance.lock`; GET status/recovery still works. Do not remove the reservation to retry issuance without verifying the provider outcome.
+- `/gifts`: wallet-authenticated checkout and sent/received gifts.
+- `/sandbox`: preserved operator-only standalone Lithic sandbox demo, including the previously issued card. Its sample fixture is separate from purchased gifts.
+- `/api/wallet`: origin-bound, five-minute ownership challenges and signed eight-hour HttpOnly wallet sessions. Challenges are consumed once. No private wallet keys are collected.
+- `/api/orders`: wallet-authorized orders, payment confirmation and recipient-only card operations.
 
-The server stores only reservation metadata and the provider card token. API responses explicitly allow only masked details, expiry, card status and spend-limit fields. PAN/CVV and API credentials are not exposed. Inspect sensitive card details and run sandbox transactions directly in Lithic's dashboard.
+### Required server variables
 
-## Limits
+- `LITHIC_API_KEY`: **sandbox** key. All issuer requests are hardcoded to `https://sandbox.lithic.com/v1`; no production URL switch exists.
+- `LITHIC_SANDBOX_ACCESS_CODE`: at least 16 random characters. Protects the standalone operator demo and signs sessions; changing it invalidates sessions.
+- `BASE_SEPOLIA_TREASURY_ADDRESS`: the test-USDC receiving wallet. Buyer and recipient must not be this treasury.
 
-This is a **local, single-Node-process sandbox integration with persistent disk**, not a production card programme or a serverless/distributed ledger. Keep the data directory across restarts and deployments; losing it loses the server's link to the gift and may allow another issuance. Do not publicly deploy without replacing local operator access/rate limiting with proper user authentication and authorization and moving reservations to a transactional database.
+### Optional server variables
 
-The $100 is a provider-enforced lifetime spending limit, **not a deposited balance or proof of crypto funding**. No wallet connection, real gift ownership verification, crypto conversion, Bridge/Stripe connection, live KYC, provider webhook reconciliation or in-app purchase flow is implemented. The old fake card and local fake purchase buttons have been removed. Test purchases in Lithic use test data and never spend real money.
+- `BASE_SEPOLIA_RPC_URL`: defaults to `https://sepolia.base.org`. The server verifies chain ID **84532** and rejects other networks.
+- `LITHIC_ACCOUNT_TOKEN`: sandbox account-holder `account_token` if your programme requires one. This is not your dashboard programme ID.
+- `LITHIC_PROGRAM_TOKEN`: programme UUID for dashboard links.
+- `LITHIC_DATA_DIR`: persistent writable root; defaults to `.data/lithic` relative to the working directory. Run from `web/` consistently.
+- `BASE_SEPOLIA_TREASURY_PRIVATE_KEY`: optional locally generated recovery key; unused by the app. Keep it private and backed up if you need access to the testnet treasury later.
 
-The legacy `/fund`, `/merchant` and `/dashboard` pages are not part of this gift flow and have not been reconnected.
+Never prefix secrets with `NEXT_PUBLIC_`. `.env.local` and `.data/` must remain untracked.
 
-## Verify
+## Verification and recovery
+
+The server verifies the official [Circle Base Sepolia USDC contract](https://developers.circle.com/stablecoins/usdc-contract-addresses), direct transfer calldata, buyer, order treasury, exact 100-USDC amount, successful receipt, matching Transfer log, canonical block and three confirmations. It atomically claims the transaction for one order and rechecks payment before card issuance. Treasury-to-itself transfers are rejected server-side.
+
+Each gift gets its own persistent Lithic reservation, UUID idempotency key and unique provider memo. Repeating issuance returns the same card. Uncertain provider outcomes are recovered by searching Lithic; the app never blindly creates a replacement. The API returns only masked card metadata, never PAN/CVV. Use Lithic's dashboard for sandbox transaction tests and card-detail inspection.
 
 ```bash
 cd web
@@ -51,4 +70,14 @@ pnpm build
 pnpm start
 ```
 
-See [app readiness](docs/readiness.md) for verified behavior and remaining work, and [Lithic's card creation guide](https://docs.lithic.com/docs/create-card) for provider setup.
+The latest [readiness report](docs/readiness.md) separates automated checks, live API/RPC checks and user-dependent wallet testing.
+
+## Scope and limitations
+
+This is a **local persistent single-Node-instance testnet/sandbox application**, not a production card programme or serverless/distributed ledger. Wallet ownership is verified with EIP-191 signatures; this is not live KYC or legal identity verification. Sign-in throttling is process-local.
+
+The 100 test USDC is sent to the configured testnet treasury. Lithic independently issues a sandbox card with a $100 lifetime spending limit. **There is no crypto-to-Lithic conversion, deposited card balance, live card spending or Bridge/Stripe funding connection.** No real-world purchase is claimed.
+
+Preserve `.data/lithic` across restarts/deployments. It contains orders, used payment claims, challenges, and per-gift card reservations. Losing these records can allow duplicate issuance or transaction reuse. Never clear them to retry an uncertain operation. A crash can leave a filesystem lock; inspect the provider/payment result before operator recovery. Public/distributed deployment requires transactional storage, persistent rate limiting, provider webhooks, operational recovery, funding integration and the appropriate programme approvals.
+
+The legacy `/fund`, `/merchant` and `/dashboard` UI still exists but its old device/Hedera services are not reconnected.

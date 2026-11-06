@@ -1,33 +1,33 @@
 # App readiness — 6 November 2026
 
-## Ready: actual Lithic sandbox issuance
+## Implemented on `codex/end-to-end-gifting`
 
-- `/` redirects to `/gifts`.
-- Operator signs in with the server-configured sandbox access code; the server sets a signed HttpOnly session cookie.
-- Review the sample gift and explicitly confirm sandbox card creation.
-- Server calls `POST https://sandbox.lithic.com/v1/cards` to create a `VIRTUAL` card with a $100 `FOREVER` spending limit.
-- Display actual provider last-four digits, expiry, state, spend-limit period and card token; link to the Lithic dashboard when the programme token is configured.
-- Refresh or revisit to retrieve the same card from Lithic. Repeated issuance returns that card rather than creating another.
-- Persist the reservation before contacting Lithic; recover uncertain results using the unique provider memo. No automatic replacement on timeout.
-- Keep credentials, full PAN and CVV out of API responses and browser storage. Server records contain only identifiers and reservation metadata.
+- Browser wallet connection and EIP-191 ownership sign-in with single-use five-minute challenges, origin binding and eight-hour signed HttpOnly sessions.
+- Persistent purchase orders for self or another recipient wallet; wallet-filtered sent/received gift lists.
+- Fixed 100 test-USDC checkout on Base Sepolia only. Direct transfer, no unlimited approvals, and buyer balance/network checks.
+- Server verification of network, Circle USDC contract, sender, treasury, amount, calldata, Transfer log, success, canonical block, order age and three confirmations.
+- Global transaction claims prevent reusing one payment for another gift. Treasury self-payments are rejected at creation and verification.
+- Only the recipient may issue/view the purchased card after payment. Payment is checked again before calling Lithic. Separate per-order provider reservations prevent duplicate cards and recover uncertain outcomes.
+- Actual provider masked card, expiry, status and spending limit. No fabricated PAN, local fake balance or fake purchase button.
+- Payment-hash persistence and manual replacement/recovery verification without automatically sending again.
+- Previous standalone Lithic fixture/card preserved at `/sandbox`, separate from purchase orders.
 
-## Verification
+## Verified
 
-- `cd web && pnpm check`: TypeScript, ESLint and 19 tests pass.
-- `cd web && pnpm build`: production compilation and static/dynamic route generation pass.
-- Actual authenticated HTTP integration created sandbox card ending **6637**, provider status **OPEN**, with a $100 lifetime limit. A repeated POST returned the same token.
-- API rejects unauthenticated reads (401) and cross-origin writes (403).
-- Tests cover persisted duplicate prevention, simultaneous requests, uncertain timeout recovery, rejected provider calls, expired/altered sessions and exact-origin protection. Provider tests use controlled HTTP responses; the successful sandbox round trip was tested separately.
-- Browser inspection confirms the actual provider card is displayed after local operator login and is independently listed in the Lithic dashboard under its unique reservation memo.
+- TypeScript and ESLint pass; **40 tests across seven files pass**.
+- Production build passes for checkout, wallet/order API routes and the standalone sandbox.
+- Live Base Sepolia RPC returned chain ID 84532 and deployed code for Circle's USDC test contract.
+- Running-app HTTP smoke test used a newly generated in-memory test wallet to sign a genuine ownership challenge. Login succeeded; replay was rejected. A real-RPC-based order was created, unpaid card issuance was blocked, an unknown hash stayed pending (not paid), and cross-origin writes were rejected. The unpaid smoke-test order was removed afterward; no tokens or new provider cards were created by this test.
+- Unit tests cover valid payment evidence and rejection of wrong chain/sender/token/recipient/amount/hash, failed/old/reorged/missing-log evidence, insufficient confirmations, treasury self-payments, duplicate payment claims, recipient access, signature tampering/expiry and provider recovery.
+- Static review found a treasury self-payment edge case. Regression tests reproduced it, the server-side checks were added, and the reviewer verified the fix.
+- The underlying Lithic integration previously created actual sandbox card **6637**, verified separately in the provider dashboard. This fixture is preserved; it is not falsely attributed to a paid checkout order.
 
-## Not ready: crypto-backed redemption or production spending
+## User-dependent testing still outstanding
 
-The received gift remains a sample, not a verified funded onchain record. The spending limit does not deposit money. No real gift recipient authentication, wallet integration, funding bridge, conversion, Bridge/Stripe connection, live KYC, webhook reconciliation or in-app purchase handling exists. Use Lithic's dashboard for sandbox transaction tests. The previous local fake purchase/balance controls were removed.
+The user will test the actual wallet transfer themselves. The in-app browser has no injected EVM wallet provider. No end-to-end funded checkout or newly issued purchased card has yet been demonstrated onchain. Use a wallet-enabled browser and 100 Base Sepolia test USDC plus test ETH, then follow the README walkthrough. A browser ownership signature is not a token transfer.
 
-## Operating boundary
+## Boundaries
 
-This is a local single-Node-process sandbox integration using persistent writable disk, not a distributed database or a serverless service. Preserve `.data/lithic` (or `LITHIC_DATA_DIR`) and `.env.local`. Losing reservation data can allow another card to be created. After ambiguous or rejected provider calls, the reservation stays locked against new issuance until the provider result is reviewed. A crash may leave `issuance.lock`; GET status recovery remains available. Do not clear records blindly.
+Testnet USDC is paid to a configured testnet treasury. It is not converted into or deposited on a Lithic card. Lithic independently issues sandbox cards with spending limits. No live money, live KYC, Bridge/Stripe funding, live card spending or in-app provider transaction simulator is implemented.
 
-The operator access code and per-process sign-in throttling are not production recipient authorization. Production requires proper identity/ownership checks, transactional storage, provider webhooks, secure funding, and the appropriate card programme approval.
-
-Legacy `/fund`, `/merchant` and `/dashboard` remain unconfigured old Leash pages, not gift-product features. Their header links to the gift demo rather than removed landing sections.
+Local filesystem records/locks and process-local throttling require a single persistent Node deployment. Preserve all data across restarts. Lost order/claim/reservation records can permit duplicate use. After a crash, inspect unresolved locks and provider/payment outcomes before any manual repair; do not reset paid gift data blindly. Public/distributed/production use requires transactional storage, operational recovery, stronger rate limits and identity/funding/programme work.

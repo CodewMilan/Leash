@@ -1,15 +1,17 @@
 # Leash Gifts website
 
-Next.js recipient flow at `/gifts`; `/` redirects there. Uses real Lithic sandbox issuance, not a local fake card.
+Next.js wallet checkout at `/gifts`; `/` redirects there. Connect and sign in with an EVM browser wallet, prepare a gift, transfer 100 Base Sepolia test USDC, verify three confirmations, then issue a real Lithic sandbox card as the recipient.
 
 ```bash
 pnpm install --frozen-lockfile
-# Configure .env.local as described in the root README
+# Configure .env.local as described in the root README.
+# If needed, create a testnet receiving wallet:
+node --env-file=.env.local scripts/setup-testnet.mjs
 pnpm dev
 ```
 
-Open http://localhost:3000 and enter the configured `LITHIC_SANDBOX_ACCESS_CODE`. Run `pnpm check` for type checking, ESLint and Vitest, or `pnpm build` for a production build.
+Use a wallet-enabled browser at http://localhost:3000. The in-app browser may not have an injected wallet. Run `pnpm check` for TypeScript, ESLint and tests, or `pnpm build` for production compilation.
 
-`LITHIC_API_KEY` stays server-side. The one-gift reservation is persisted in `.data/lithic` by default; do not delete it to retry an ambiguous issuance. The local operator session is not real recipient authentication. The displayed gift remains illustrative and its value is only used as a sandbox spending limit.
+`/sandbox` preserves the separate password-protected standalone operator demo. Purchased gifts use wallet sessions and per-order payment verification; they do not reuse the sample card.
 
-See [the project README](../readme.md) for environment setup, security and deployment limits, and recovery details.
+Credentials remain server-side. Keep `.env.local` and `.data/lithic` private and persistent. No real funds, conversion to a card balance, live KYC or production/distributed support is provided. See [the project README](../readme.md) for setup, recovery, limits and the testing walkthrough.
