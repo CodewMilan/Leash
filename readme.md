@@ -102,6 +102,12 @@ The script writes secrets and the card token into `web/.env.local` and never pri
 
 Webhooks: `/api/webhooks/lithic/asa` answers Auth Stream Access requests with `{ token, result }` (signed with `LITHIC_ASA_SECRET`; anything other than a valid Phase 0 USD purchase within $25 is declined). `/api/webhooks/lithic/events` records each event once (`LITHIC_EVENTS_SECRET`). In development, `/dev/card` shows the Phase 0 card through Lithic's hosted card frames (`lithic-embed`, sandbox mode); it needs a session, so the database must be running.
 
+### Sandbox shop (interim)
+
+`/shop` ("Leash Supply") is a sandbox store: a catalog and cart with server-side prices, where checkout sends a real Lithic sandbox authorization and clearing for the selected card and records the receipt. `/gifts` is the operator page that issues or recovers that card. Set `LITHIC_API_KEY` and `LITHIC_SANDBOX_ACCESS_CODE` (at least 16 characters) and sign in on `/gifts` with the code. Records live in `LITHIC_DATA_DIR` (default `web/.data/lithic`, ignored by git); keep that directory, because it stops a second card being issued or a payment being cleared twice.
+
+Today this is one shared operator card with a fixed $100 lifetime limit; it is not yet tied to a claimed Shagun gift, the gift ledger or the vault. Once an ASA responder is enrolled, shop authorizations are expected to reach `/api/webhooks/lithic/asa`, which currently declines cards that are not tagged for Phase 0.
+
 Use `pnpm exec playwright install chromium` once if no browser is installed. Browser tests isolate their server on port 3100 and a separate build directory. CI runs type/lint/tests, compilation, migrations, production build and browser checks without real provider credentials.
 
 ## How value moves
