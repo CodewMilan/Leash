@@ -1,19 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { z } from "zod";
 import { config } from "./config.js";
+import { parseContacts, type Contact } from "./core/contacts.js";
 
-const Contact = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/),
-  name: z.string(),
-  aliases: z.array(z.string()).default([]),
-  /** x402-protected URL the device requests to pay this contact. `{amount}` / `{qty}` are filled from the decision. */
-  endpoint: z.string().url(),
-  /** Hedera account the 402 must pay. Anything else is refused. */
-  payTo: z.string().regex(/^\d+\.\d+\.\d+$/),
-  description: z.string().default(""),
-});
-
-export type Contact = z.infer<typeof Contact>;
+export type { Contact } from "./core/contacts.js";
 
 let cache: Contact[] | null = null;
 
@@ -22,7 +11,7 @@ export async function loadContacts(): Promise<Contact[]> {
   const raw = await readFile(config.contactsFile, "utf8").catch(() => {
     throw new Error(`Contacts file not found at ${config.contactsFile}. Copy contacts.example.json to contacts.json and fill in real Hedera accounts.`);
   });
-  cache = z.array(Contact).min(1).parse(JSON.parse(raw));
+  cache = parseContacts(JSON.parse(raw));
   return cache;
 }
 
