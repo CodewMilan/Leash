@@ -2,7 +2,6 @@
   "name": "leash",
   "private": true,
   "scripts": {
-    "check": "pnpm -C device check && pnpm -C merchant check && pnpm -C web check",
-    "test:live": "pnpm -C merchant test:live"
+    "check": "pnpm -C web check"
   }
 }

@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { hashscanTxId, parseTopicMessage, toUsdcTransfers } from "./mirror";
 
-const fixture = readFileSync(path.join(__dirname, "..", "..", "..", "fixtures", "spend-log-entry.json"), "utf8");
+const fixture = readFileSync(path.join(__dirname, "..", "..", "fixtures", "spend-log-entry.json"), "utf8");
 const b64 = (text: string) => Buffer.from(text, "utf8").toString("base64");
 
 describe("parseTopicMessage", () => {
