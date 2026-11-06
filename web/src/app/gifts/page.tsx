@@ -186,7 +186,7 @@ export default function GiftsPage() {
         <div className={styles.inboxHeader}><h2>Your gifts</h2><div><button disabled={!!busy} onClick={() => void run("Refreshing gifts…", load)}>Refresh</button><button disabled={!!busy} onClick={() => { setSelectedId(null); setCardView(null); setError(""); }}>New gift</button></div></div>
         {!orders.length ? <p>No gifts yet. Prepare your first gift above, or ask a sender to use your connected wallet address.</p> : <ul>{orders.map(value => <li key={value.id}><button disabled={!!busy} onClick={() => void openOrder(value)} aria-pressed={selectedId === value.id}><span><strong>{same(value.recipient, wallet) ? "For you" : `To ${short(value.recipient)}`}</strong><small>{short(value.id)} · {same(value.buyer, wallet) ? "You bought this" : `From ${short(value.buyer)}`}</small></span><span>100 test USDC<small>{statusLabel[value.status]}</small></span></button></li>)}</ul>}
       </section>}
-      <footer className={styles.footer}><p><strong>Testnet purchase · sandbox issuance.</strong> Wallet payments use Base Sepolia test USDC. Lithic issues sandbox cards independently; this does not convert crypto into card funds. No mainnet payments, live KYC or real-world card purchases are supported.</p><Link href="/sandbox">Operator sandbox</Link></footer>
+      <footer className={styles.footer}><p><strong>Testnet purchase · sandbox issuance.</strong> Wallet payments use Base Sepolia test USDC. Lithic issues sandbox cards independently; this does not convert crypto into card funds. No mainnet payments, live KYC or real-world card purchases are supported.</p><div><Link href="/shop">Sandbox shop ↗</Link><br /><Link href="/sandbox">Operator sandbox</Link></div></footer>
     </main>
   </div>;
 }

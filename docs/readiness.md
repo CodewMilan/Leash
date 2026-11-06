@@ -31,3 +31,20 @@ The user will test the actual wallet transfer themselves. The in-app browser has
 Testnet USDC is paid to a configured testnet treasury. It is not converted into or deposited on a Lithic card. Lithic independently issues sandbox cards with spending limits. No live money, live KYC, Bridge/Stripe funding, live card spending or in-app provider transaction simulator is implemented.
 
 Local filesystem records/locks and process-local throttling require a single persistent Node deployment. Preserve all data across restarts. Lost order/claim/reservation records can permit duplicate use. After a crash, inspect unresolved locks and provider/payment outcomes before any manual repair; do not reset paid gift data blindly. Public/distributed/production use requires transactional storage, operational recovery, stronger rate limits and identity/funding/programme work.
+
+## Sandbox ecommerce verification — 2026-11-06
+
+`/shop` now provides a product catalog, quantity cart, server-calculated prices, authorized issued-card selection and persistent order history/receipts. Both recipient-issued cards and the existing operator fixture are supported. Provider-backed checkout uses actual Lithic sandbox authorization and clearing; this is not a Stripe/Razorpay checkout or merchant-bank payout.
+
+Verified against the running production build:
+
+- Bought one Daily Notebook for **$12.00 sandbox USD**, operator card ending **6637**.
+- Lithic transaction `d2f1a55c-aa69-4e00-a3cc-8494f4e0f7fc`: **SETTLED / APPROVED**, settlement 1200 cents, exactly one AUTHORIZATION and one CLEARING event.
+- Initially delayed transaction visibility and provider descriptor truncation were recovered on the same saved order, without sending another authorization. New descriptors are 20 characters; recovery supports the provider's 22-character truncation of earlier descriptors.
+- Repeated payment POST returned the same PAID order and transaction; provider still had exactly one transaction. Unauthenticated receipt GET returned 401.
+- Receipt survived browser reload; desktop and 390px mobile checkout inspected; no browser console warnings/errors after reload.
+- `pnpm check`: TypeScript, ESLint and **46 tests across eight files** pass. `pnpm build` passes. Impeccable static detector reports no findings in the shop UI.
+
+The test used the preserved operator fixture. It does not demonstrate the user's actual Base Sepolia wallet payment or recipient issuance. Those remain user-tested steps. No real money moved, no merchant bank received funds, and nothing ships. Card limits are sandbox spending controls, not a crypto-funded balance. Preserve all `.data/lithic/shop` records; ambiguous clearing is never automatically retried and may need operator review.
+
+![Settled sandbox checkout](screenshots/sandbox-shop-settled.png)

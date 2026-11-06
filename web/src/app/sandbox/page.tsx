@@ -168,6 +168,7 @@ export default function GiftsPage() {
         </section>
       </div>
       <footer className={styles.footer}>
+        <Link href="/shop">Spend in sandbox shop ↗</Link>
         <p><strong>Real sandbox API · no real spending.</strong> Card issuance uses Lithic. The received gift is illustrative; wallet funding, crypto conversion and live KYC are not connected. One card is reserved on this server; signing out or clearing browser data does not reset it.</p>
         {signedIn && <button onClick={() => void signOut()} disabled={busy}>Sign out</button>}
       </footer>

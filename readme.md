@@ -81,3 +81,13 @@ The 100 test USDC is sent to the configured testnet treasury. Lithic independent
 Preserve `.data/lithic` across restarts/deployments. It contains orders, used payment claims, challenges, and per-gift card reservations. Losing these records can allow duplicate issuance or transaction reuse. Never clear them to retry an uncertain operation. A crash can leave a filesystem lock; inspect the provider/payment result before operator recovery. Public/distributed deployment requires transactional storage, persistent rate limiting, provider webhooks, operational recovery, funding integration and the appropriate programme approvals.
 
 The legacy `/fund`, `/merchant` and `/dashboard` UI still exists but its old device/Hedera services are not reconnected.
+
+## Sandbox store
+
+Open [the local store](http://localhost:3000/shop). Add products, choose your issued sandbox card, and check out. Recipient cards become available after issuance at `/gifts`; signing into `/sandbox` also makes the existing operator fixture available for testing. Prices are calculated on the server. Orders and receipts persist under `.data/lithic/shop`.
+
+Checkout calls Lithic's sandbox [authorization](https://docs.lithic.com/docs/simulate-auth) and [clearing](https://docs.lithic.com/docs/simulate-clearing) endpoints, then verifies the provider transaction before marking an order paid. The sandbox simulator requires a PAN: the server fetches it transiently in memory and never logs, persists, or returns it to the browser. A pending or uncertain operation must be recovered using the existing order. Authorization and clearing intent are saved before requests; uncertain clearing is never resent automatically.
+
+This is issuer-side simulated commerce, not a Stripe/Razorpay acquiring connection. Sandbox cards do not transfer money to a merchant bank account. No products are shipped, and testnet USDC is not converted into card funds. Check the receipt and linked Lithic transaction list for provider evidence.
+
+Product photography is illustrative, from Unsplash: [notebook](https://images.unsplash.com/photo-1531346878377-a5be20888e57), [bag](https://images.unsplash.com/photo-1544816155-12df9643f363), [bottle](https://images.unsplash.com/photo-1602143407151-7111542de6e8).
