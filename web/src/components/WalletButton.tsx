@@ -8,6 +8,12 @@ import { walletMessage } from "@/components/shagun/giftFlow";
 
 const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
+/** On phones the extension can't exist, so open this page inside the MetaMask app instead. */
+function installHref(fallback: string | undefined) {
+  if (typeof navigator === "undefined" || !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return fallback;
+  return `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+}
+
 /** Connect / signed-in control for the site header. */
 export function WalletButton({ compact = false }: { compact?: boolean }) {
   const sender = useSender();
@@ -68,9 +74,10 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
     <div ref={root} className="relative flex h-full items-center">
       {sender.ready && !sender.installed ? (
         <a
-          href={sender.wallets[0]?.installUrl}
+          href={installHref(sender.wallets[0]?.installUrl)}
           target="_blank"
           rel="noreferrer"
+          title="MetaMask isn't installed in this browser"
           className="flex h-full min-h-11 items-center gap-2 border-l border-grey-02 px-4 text-[15px] transition-colors hover:bg-grey-01"
         >
           <Wallet size={16} strokeWidth={1.75} aria-hidden="true" />

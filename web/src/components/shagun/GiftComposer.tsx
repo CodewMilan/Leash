@@ -24,6 +24,7 @@ export function useGiftDraft(
   initial: {
     amount?: string | null;
     design?: string | null;
+    message?: string | null;
     label?: string | null;
     campaign?: string | null;
   } = {},
@@ -37,7 +38,7 @@ export function useGiftDraft(
     }
   });
   const [design, setDesign] = useState(() => designById(initial.design || DEFAULT_DESIGN).id);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => (initial.message || "").slice(0, MESSAGE_MAX));
   const [label, setLabel] = useState(() => (initial.label || "A little Diwali love").slice(0, 80));
   const [expiry, setExpiry] = useState(EXPIRY_OPTIONS[0].seconds);
   const [campaign, setCampaign] = useState(() => (initial.campaign || "").slice(0, 60));
@@ -95,6 +96,19 @@ export function GiftComposer({
   const short = balance !== null && !draft.amountError && BigInt(balance) < giftUnits(draft.amount);
   const expiryLabel = EXPIRY_OPTIONS.find((o) => o.seconds === draft.expiry)?.label || "";
 
+  async function connect() {
+    const walletId = sender.wallet?.id || sender.wallets[0]?.id;
+    if (!walletId) return;
+    setError("");
+    setBusy("Check your wallet…");
+    try {
+      await sender.connect(walletId);
+    } catch (e) {
+      setError(walletMessage(e, "Your wallet could not sign you in."));
+    } finally {
+      setBusy("");
+    }
+  }
   function review(event: FormEvent) {
     event.preventDefault();
     setError("");
@@ -356,14 +370,31 @@ export function GiftComposer({
           {error}
         </div>
       )}
-      <button
-        className="button primary full"
-        type="submit"
-        disabled={!signedIn || !ready || !!draft.amountError}
-      >
-        Review gift
-        <ArrowUpRight size={20} />
-      </button>
+      {signedIn ? (
+        <button className="button primary full" type="submit" disabled={!ready || !!draft.amountError}>
+          Review gift
+          <ArrowUpRight size={20} />
+        </button>
+      ) : sender.ready && !sender.installed ? (
+        <a className="button primary full" href={sender.wallets[0]?.installUrl} target="_blank" rel="noreferrer">
+          Install MetaMask to send
+          <ArrowUpRight size={20} />
+        </a>
+      ) : (
+        <button className="button primary full" type="button" onClick={connect} disabled={!!busy || !sender.ready}>
+          {busy ||
+            (from && sender.account
+              ? "Sign in with this account"
+              : `Connect ${sender.wallet?.label || sender.wallets[0]?.label || "your wallet"} to continue`)}
+          <ArrowUpRight size={20} />
+        </button>
+      )}
+      {signedIn && !ready && (
+        <p className="microcopy" role="status">
+          Sending is paused: this server&apos;s gift vault or storage isn&apos;t configured yet. Your
+          draft is kept on this page.
+        </p>
+      )}
     </form>
   );
 }

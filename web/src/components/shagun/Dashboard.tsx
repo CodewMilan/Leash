@@ -39,7 +39,11 @@ const ONBOARDING = [
 export function Dashboard() {
   const sender = useSender();
   const params = useSearchParams();
-  const draft = useGiftDraft({ amount: params.get("amount"), design: params.get("design") });
+  const draft = useGiftDraft({
+    amount: params.get("amount"),
+    design: params.get("design"),
+    message: params.get("brief"),
+  });
   const [status, setStatus] = useState<AppStatus | null>(null);
   const from = sender.session;
   const [balance, setBalance] = useState<string | null>(null);
@@ -145,6 +149,11 @@ export function Dashboard() {
                 <LogOut size={16} />
               </button>
             </>
+          ) : sender.ready && !sender.installed ? (
+            <a className="button dark small" href={sender.wallets[0]?.installUrl} target="_blank" rel="noreferrer">
+              Install MetaMask
+              <ArrowUpRight size={16} />
+            </a>
           ) : (
             sender.wallets.map((wallet) => (
               <button
@@ -214,7 +223,7 @@ export function Dashboard() {
           {!signedIn && (
             <p className="microcopy px-6 pb-6">
               {sender.configured
-                ? "Connect your wallet above to send. You sign once to sign in and once per gift."
+                ? "You sign twice in total: once to sign in, once per gift. Neither costs gas."
                 : "Wallet sign-in is being set up. You can preview a card while services are connected."}
             </p>
           )}

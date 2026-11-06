@@ -5,7 +5,7 @@ import { Dashboard } from "@/components/shagun/Dashboard";
 
 export const metadata: Metadata = {
   title: "Dashboard · Shagun",
-  description: "Send a gift and follow its status from authorization through claim, payout, or return.",
+  description: "Send a gift and follow its status from signing through claim, card spending, or return.",
 };
 
 export default function DashboardPage() {

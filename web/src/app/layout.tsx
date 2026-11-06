@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Shagun · A little gift. A lot of love.",
   description:
-    "Send a Diwali gift in dollars. Claim with your device and World ID. Built on Whitechain with explicitly simulated UPI test payouts.",
+    "Send a Diwali gift in dollars without paying gas. One verified person claims it as a sandbox virtual card, and the unspent balance comes back. Whitechain testnet, no real money.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
