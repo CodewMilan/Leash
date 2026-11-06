@@ -46,3 +46,7 @@ pnpm start
 See [readiness](docs/readiness.md) for actual sandbox transaction evidence. Legacy `/fund`, `/merchant` and `/dashboard` screens are not connected to their old services.
 
 Illustrative Unsplash photography: [notebook](https://images.unsplash.com/photo-1531346878377-a5be20888e57), [bag](https://images.unsplash.com/photo-1544816155-12df9643f363), [bottle](https://images.unsplash.com/photo-1602143407151-7111542de6e8).
+
+## Merged main application
+
+Latest `main` is merged on the testing branch. Its Shagun landing page remains at `/`, with its additional routes, contracts, database and worker code preserved. The received-pass sandbox demo remains at `/gifts` and `/shop` and does not require the main app’s database or wallet. Main application setup/status is documented in `docs/main-readme.md`; those integrations require their own environment and verification.

@@ -1,17 +1,29 @@
-# Leash Gifts website
+# Shagun web application
 
-Next.js wallet checkout at `/gifts`; `/` redirects there. Connect and sign in with an EVM browser wallet, prepare a gift, transfer 100 Base Sepolia test USDC, verify three confirmations, then issue a real Lithic sandbox card as the recipient.
+The runnable Next.js application and Node worker live here. Start with the repository [README](../readme.md), [architecture](../docs/architecture.md), and [developer guide](../docs/development.md).
 
 ```bash
 pnpm install --frozen-lockfile
-# Configure .env.local as described in the root README.
-# If needed, create a testnet receiving wallet:
-node --env-file=.env.local scripts/setup-testnet.mjs
+cp .env.example .env.local
+pnpm db:migrate
 pnpm dev
 ```
 
-Use a wallet-enabled browser at http://localhost:3000. The in-app browser may not have an injected wallet. Run `pnpm check` for TypeScript, ESLint and tests, or `pnpm build` for production compilation.
+Run `pnpm worker` separately once chain roles and provider configuration are ready. Both processes use the same PostgreSQL database and encryption key.
 
-`/sandbox` preserves the separate password-protected standalone operator demo. Purchased gifts use wallet sessions and per-order payment verification; they do not reuse the sample card.
+| Command | Purpose |
+| --- | --- |
+| `pnpm check` | Type check, lint, and meaningful contract/API tests |
+| `pnpm contracts:build` | Vault ABI/bytecode and source-verification input |
+| `pnpm chain:check` | Real chain 1874, token code, decimals and signing domain |
+| `pnpm contracts:deploy -- --confirm-testnet` | Explicit real testnet deployment |
+| `pnpm db:migrate` | Locked, transactional, versioned schema migration |
+| `pnpm worker` | Durable chain/payout/refund processor |
+| `pnpm build` / `pnpm start` | Build / serve the production web bundle |
+| `pnpm test:e2e` | Disposable local database and isolated browser checks |
 
-Credentials remain server-side. Keep `.env.local` and `.data/lithic` private and persistent. No real funds, conversion to a card balance, live KYC or production/distributed support is provided. See [the project README](../readme.md) for setup, recovery, limits and the testing walkthrough.
+Browser tests require `E2E_DATABASE_URL` pointing to a disposable localhost PostgreSQL database and a Playwright Chromium installation. They do not connect to real payment services. Set `SHAGUN_BUILD_DIR=.next-build` for a build that must coexist with another developer's `pnpm dev`.
+
+Server code stays under `src/lib/server/`, organized by domain. Pages and UI never import secrets-bearing server modules. SQL migrations live in `../db/migrations/`; contracts live in `../contracts/`. Secret values only enter through the environment.
+
+The UPI integration is **RazorpayX test mode**. Configuration presence does not mean a service has been verified end to end. See the [production release gate](../docs/operations.md) before deploying anything that moves real money.

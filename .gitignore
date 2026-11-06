@@ -4,3 +4,7 @@ node_modules/
 .DS_Store
 dist/
 build/
+contracts/artifacts/
+web/test-results/
+web/playwright-report/
+.pnpm-store/

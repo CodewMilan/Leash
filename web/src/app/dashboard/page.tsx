@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Dashboard } from "@/components/dashboard/Dashboard";
+import { Suspense } from "react";
 import { Header } from "@/components/Header";
+import { Dashboard } from "@/components/shagun/Dashboard";
 
 export const metadata: Metadata = {
-  title: "Live log · Leash",
-  description: "Every Leash payment, its HashScan receipt and its 0G request ID, read live from Hedera.",
+  title: "Dashboard · Shagun",
+  description: "Send a gift and follow its status from signing through claim, card spending, or return.",
 };
 
 export default function DashboardPage() {
   return (
     <>
       <Header />
-      <main className="min-h-[calc(100dvh-var(--header-h))] border-grey-02 lg:mx-[var(--gutter)] lg:border-x">
+      <Suspense fallback={<div className="loading-block" aria-label="Loading" />}>
         <Dashboard />
-      </main>
+      </Suspense>
     </>
   );
 }
