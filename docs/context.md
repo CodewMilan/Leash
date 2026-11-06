@@ -1,19 +1,13 @@
 # Project context
 
-The repo is the Next.js website in `web/`. The old Leash device, merchant services, 0G, Hedera and World ID integrations were removed. Legacy UI routes remain; do not rebuild/reconnect their services unless asked.
+The repo is the Next.js website in `web/`. Old device, merchant services, 0G, Hedera and World ID integrations were removed. Do not reconnect legacy screens unless asked. Secrets come only from environment variables and must never be committed.
 
-## Current branch: testnet wallet purchases
+## Current flow: received pass to sandbox commerce
 
-`codex/end-to-end-gifting` adds wallet-authenticated purchases at `/gifts`: connect an injected EVM wallet, sign an origin-bound single-use challenge, prepare a gift for self or another wallet, pay exactly 100 test USDC on Base Sepolia, verify three confirmations, then issue a real Lithic sandbox card as the recipient.
+On `codex/end-to-end-gifting`, `/gifts` starts with a received $100 sample pass. A local sandbox access code opens the shared demo (signed HttpOnly session), then the user reviews and issues or recovers the same Lithic virtual card. The code is not real recipient identity verification. No email delivery is implemented. `/sandbox` redirects to `/gifts`. Card-ready CTA leads to `/shop`.
 
-The server validates chain 84532, the official Circle test-USDC contract, transaction calldata/logs, sender, stored treasury, amount, success, canonical block and order age. A transaction is atomically claimed for one gift. Unpaid orders and other wallets cannot issue/view the card. Each order has a separate durable Lithic reservation and safe provider timeout recovery. Secrets come only from environment variables; PAN/CVV and private keys never go to the client.
+Wallet connection and gift purchase payment were removed at the user's request. `/api/wallet` and old `/api/orders` routes return HTTP 410. Wallet/payment library code and records are preserved for historical reference, not connected to the current UI or shop authorization. Base Sepolia variables are not needed.
 
-`/sandbox` preserves the older standalone operator-only Lithic sample and existing card. It is separate from purchased gifts.
+`/shop` provides catalog, quantity cart, server prices, authorized received-pass card selection and persistent receipts. Actual Lithic sandbox authorization + clearing is verified against card, descriptor, currency and amounts before PAID. PAN is fetched only transiently in server memory for the simulator; never log, persist or expose it. Provider descriptors truncate to 22 characters; new orders use 20. Save intent before external calls; recover the same order and never blindly repeat clearing.
 
-Testnet USDC goes to a local testnet treasury. The independently issued Lithic sandbox card has a $100 lifetime spending limit, NOT a deposited crypto-backed balance. Bridge/Stripe conversion/funding, live KYC, real-world purchases and production funding remain absent.
-
-Use one persistent local Node instance. Preserve `.env.local` and `.data/`, including orders, payment claims and provider reservations. No serverless/distributed or production readiness is claimed. Read readme.md and docs/readiness.md for setup and verification. User-controlled wallet approval and test funds are required for an actual chain payment; do not claim the full paid purchase was demonstrated without that transaction.
-
-## Sandbox ecommerce
-
-`/shop` adds a catalog, quantity cart, server pricing, authenticated card selection and persistent receipts. It uses Lithic sandbox authorization + clearing and verifies actual transaction status, card, descriptor, currency and amounts before marking PAID. Both recipient-issued cards and the authenticated operator fixture are supported. PAN is fetched only transiently in server memory for the sandbox simulator, never logged/persisted/exposed. Provider descriptors truncate to 22 characters; new orders use 20. Save intent before provider calls; recover the same order and never blindly repeat clearing. Store records live under `.data/lithic/shop`. This simulates the merchant/acquirer side inside Lithic; no merchant bank settlement, shipped goods or crypto conversion is implemented.
+Use one persistent local Node instance. Preserve `.env.local` and `.data/lithic`, including the existing `gift.json` card reservation, historical orders/payment claims, and `shop/` receipts. The received pass is illustrative and the card spending limit is not deposited funds. No crypto conversion, real funding, merchant bank payout, live KYC, email delivery or Apple Pay is implemented. No real products ship. See readme.md for setup and docs/readiness.md for evidence.

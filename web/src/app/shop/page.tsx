@@ -157,7 +157,7 @@ export default function ShopPage() {
             <div className={styles.delivery}><span>Delivery</span><span>Not shipped · sandbox</span></div>
             <div className={styles.total}><span>Total · USD</span><strong>{usd(cartTotal)}</strong></div>
             <label className={styles.cardLabel}>Pay with a sandbox card<select value={source} disabled={!loaded || !!busy || !cards.length} onChange={event => setSource(event.target.value)}><option value="" disabled>{!loaded ? "Checking your cards…" : "Select a sandbox card"}</option>{cards.map(card => <option key={card.sourceId} value={card.sourceId}>{card.label} · {card.state}</option>)}</select></label>
-            {!cards.length && loaded && <p className={styles.loginNote}>{authenticated ? "No issued card is available in this session." : "Sign in to use a card from your gifts or the standalone operator sandbox."} <Link href="/gifts">Connect gift wallet</Link> or <Link href="/sandbox">open operator sandbox</Link>.</p>}
+            {!cards.length && loaded && <p className={styles.loginNote}>{authenticated ? "No issued card is available in this session." : "Open your received pass to use its sandbox card."} <Link href="/gifts">Open received pass</Link>.</p>}
             <button className={styles.pay} disabled={!loaded || !!busy || !cart.length || !source} onClick={() => void checkout()}>Pay {usd(cartTotal)} in sandbox <span aria-hidden="true">→</span></button>
             <p className={styles.paymentNote}>Provider authorization + clearing. No real charge. No card number entered or exposed in this checkout.</p>
             <button className={styles.secondary} disabled={!!busy} onClick={() => void run("Refreshing available cards…", load)}>Refresh cards & orders</button>

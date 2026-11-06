@@ -1,16 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { privateHeaders, purchaseAccess, purchaseError, smallBody } from "@/lib/server/purchase-api";
-export async function GET(request: NextRequest) {
-  try {
-    const { wallet, service } = purchaseAccess(request);
-    return NextResponse.json({ orders: await service.list(wallet) }, { headers: privateHeaders });
-  } catch (error) { return purchaseError(error); }
+import { NextResponse } from "next/server";
+
+function retired() {
+  return NextResponse.json({ error: "Wallet purchases have been removed. Open your received pass at /gifts." }, { status: 410, headers: { "Cache-Control": "no-store" } });
 }
-export async function POST(request: NextRequest) {
-  try {
-    const { wallet, service } = purchaseAccess(request, true);
-    const body = await smallBody(request);
-    const recipient = typeof body.recipient === "string" && body.recipient.trim() ? body.recipient.trim() : wallet;
-    return NextResponse.json({ order: await service.create(wallet, recipient) }, { status: 201, headers: privateHeaders });
-  } catch (error) { return purchaseError(error); }
-}
+export const GET = retired;
+export const POST = retired;

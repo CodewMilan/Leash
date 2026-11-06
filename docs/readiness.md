@@ -1,3 +1,13 @@
+# Current flow — wallet purchase removed (2026-11-06)
+
+The app now starts at `/gifts` with a received sample pass, local access-code protection, Lithic sandbox card issuance/recovery, then `/shop`. No wallet connection or payment to buy a pass is required. Wallet and old purchase endpoints return HTTP 410; records remain intact. `/sandbox` redirects to `/gifts`. The shared sample pass is not email delivery or verified recipient identity.
+
+Verified after this change: 46 tests, TypeScript, ESLint and production build pass. Running API returns the existing card ending 6637 and offers the same card in the store. Retired POST endpoints return 410 and the old sandbox redirects to `/gifts`. Browser confirms card-ready view and Shop with this card link. The previous settled $12 receipt remains intact; no new card or charge was created for this change.
+
+The historical reports below describe earlier branches of the flow; wallet purchase instructions are superseded by the README and this section.
+
+---
+
 # App readiness — 6 November 2026
 
 ## Implemented on `codex/end-to-end-gifting`
